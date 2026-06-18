@@ -53,13 +53,13 @@ class SchunkROS1Driver:
                     msg.header.stamp = rospy.Time.now()
                     msg.header.frame_id = self.frame_id
                     
-                    # FTData is a TypedDict in their utility.py
-                    msg.wrench.force.x = data.get("force_x", 0.0)
-                    msg.wrench.force.y = data.get("force_y", 0.0)
-                    msg.wrench.force.z = data.get("force_z", 0.0)
-                    msg.wrench.torque.x = data.get("torque_x", 0.0)
-                    msg.wrench.torque.y = data.get("torque_y", 0.0)
-                    msg.wrench.torque.z = data.get("torque_z", 0.0)
+                    # FTData keys must match utility.py exactly
+                    msg.wrench.force.x = data.get("fx", 0.0)
+                    msg.wrench.force.y = data.get("fy", 0.0)
+                    msg.wrench.force.z = data.get("fz", 0.0)
+                    msg.wrench.torque.x = data.get("tx", 0.0)
+                    msg.wrench.torque.y = data.get("ty", 0.0)
+                    msg.wrench.torque.z = data.get("tz", 0.0)
                     
                     self.pub.publish(msg)
             except Exception as e:
