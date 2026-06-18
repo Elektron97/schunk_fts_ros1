@@ -1,6 +1,6 @@
 <div align="center">
   <img src="resources/images/schunk_fts.png" alt="SCHUNK Force-Torque Sensor" style="width: 25%;"/>
-  <h1 align="center">SCHUNK Force-Torque Sensor</h1>
+  <h1 align="center"> ROS 1 Porting SCHUNK Force-Torque Sensor (for Nostalgic)</h1>
 </div>
 
 <p align="center">
@@ -17,7 +17,7 @@
 
 ---
 
-A ROS2 driver for SCHUNK force-torque sensors with 1000 Hz data streaming, automatic reconnection, and lifecycle management. Works with SCHUNK FT-Sensors with Ethernet Interface Box (FTS IFB-EN Ident.-Number 1651726 or FTS IFB-EN-IP67 Ident.-Number 1651748).
+A ROS1 driver for SCHUNK force-torque sensors with 1000 Hz data streaming, automatic reconnection, and lifecycle management. Works with SCHUNK FT-Sensors with Ethernet Interface Box (FTS IFB-EN Ident.-Number 1651726 or FTS IFB-EN-IP67 Ident.-Number 1651748).
 
 ## Features
 
