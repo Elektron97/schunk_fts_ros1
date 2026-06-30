@@ -22,6 +22,14 @@ RUN apt-get update -qq && apt-get install -y --no-install-recommends \
     socat \
     && rm -rf /var/lib/apt/lists/*
 
+ENV RUSTUP_HOME=/usr/local/rustup \
+    CARGO_HOME=/usr/local/cargo \
+    PATH=/usr/local/cargo/bin:$PATH
+
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | \
+    sh -s -- -y --profile minimal --default-toolchain stable && \
+    chmod -R a+w ${RUSTUP_HOME} ${CARGO_HOME}
+
 WORKDIR /schunk_force_torque_sensor
 RUN mkdir -p src
 
@@ -34,6 +42,9 @@ COPY schunk_fts_library /schunk_force_torque_sensor/src/schunk_fts_library
 # Initialize rosdep
 RUN rosdep init || true &&\
     rosdep update
+
+# Keep Python build tooling aligned with the pinned package metadata below.
+RUN python3 -m pip install --no-cache-dir packaging==26.2
 
 # Install Python packages
 RUN pip install -e /schunk_force_torque_sensor/src/schunk_fts_library &&\
