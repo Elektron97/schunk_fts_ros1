@@ -4,7 +4,7 @@
   <name>schunk_fts_driver</name>
   <version>0.0.0</version>
   <description>ROS2 driver for SCHUNK`s force-torque sensors</description>
-  <maintainer email="stefan.scherzinger@de.schunk.com">stefan</maintainer>
+  <maintainer email="fabian.reinwald@de.schunk.com">Fabian Reinwald</maintainer>
   <license>GPL-3.0-or-later</license>
 
   <depend>rclpy</depend>
