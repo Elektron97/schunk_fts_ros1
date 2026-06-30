@@ -19,7 +19,7 @@ from rclpy.node import Node
 from lifecycle_msgs.msg import Transition
 from geometry_msgs.msg import WrenchStamped
 from diagnostic_msgs.msg import DiagnosticStatus
-from example_interfaces.srv import Trigger
+from std_srvs.srv import Trigger
 from schunk_fts_interfaces.srv import SendCommand  # type: ignore [attr-defined]
 from functools import partial
 import time

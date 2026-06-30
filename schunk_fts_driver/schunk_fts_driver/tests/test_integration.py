@@ -21,7 +21,7 @@ from rclpy.executors import MultiThreadedExecutor
 from lifecycle_msgs.msg import Transition, State
 from geometry_msgs.msg import WrenchStamped
 from diagnostic_msgs.msg import DiagnosticStatus
-from example_interfaces.srv import Trigger
+from std_srvs.srv import Trigger
 from functools import partial
 import time
 import threading

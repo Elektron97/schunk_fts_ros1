@@ -18,7 +18,7 @@ import pytest
 import rclpy
 from rclpy.executors import MultiThreadedExecutor
 from lifecycle_msgs.msg import Transition
-from example_interfaces.srv import Trigger
+from std_srvs.srv import Trigger
 from schunk_fts_interfaces.srv import (  # type: ignore [attr-defined]
     SendCommand,
     SelectToolSetting,

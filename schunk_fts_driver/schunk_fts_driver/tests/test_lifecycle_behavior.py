@@ -386,7 +386,7 @@ def test_rapid_transitions_without_crashes(sensor, lifecycle_interface):
 def test_services_available_in_active_state(sensor, lifecycle_interface):
     """Test that services are available after activation."""
     from rclpy.node import Node
-    from example_interfaces.srv import Trigger
+    from std_srvs.srv import Trigger
 
     driver = lifecycle_interface
     driver.change_state(Transition.TRANSITION_CONFIGURE)
@@ -412,7 +412,7 @@ def test_services_available_in_active_state(sensor, lifecycle_interface):
 def test_services_not_available_in_inactive_state(sensor, lifecycle_interface):
     """Test that services are not available in inactive state."""
     from rclpy.node import Node
-    from example_interfaces.srv import Trigger
+    from std_srvs.srv import Trigger
 
     driver = lifecycle_interface
     driver.change_state(Transition.TRANSITION_CONFIGURE)
