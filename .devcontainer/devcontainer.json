@@ -22,7 +22,7 @@
   "customizations": {
     "vscode": {
       "extensions": [
-        "ms-iot.vscode-ros",
+        "Ranch-Hand-Robotics.rde-ros-2",
         "ms-python.python",
         "ms-python.vscode-pylance",
         "twxs.cmake",
