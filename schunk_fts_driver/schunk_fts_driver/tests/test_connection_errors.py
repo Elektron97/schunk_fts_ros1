@@ -56,7 +56,7 @@ def test_graceful_degradation_when_streaming_stops(sensor, lifecycle_interface):
 
     _ = driver.node.create_subscription(
         WrenchStamped,
-        "/schunk/driver/data",
+        "/schunk/fts/data",
         partial(collect_messages, messages=messages),
         10,
     )
@@ -159,7 +159,7 @@ def test_sensor_state_after_failed_configure(ros2, driver, lifecycle_interface):
         # Verify we can still interact with parameters
         node = Node("test_params_after_failure")
         get_params_client = node.create_client(
-            rclpy.parameter.get_parameters, "/schunk/driver/get_parameters"
+            rclpy.parameter.get_parameters, "/schunk/fts/get_parameters"
         )
         # Service should still be available
         assert get_params_client.wait_for_service(timeout_sec=2)
@@ -183,7 +183,7 @@ def test_no_data_published_on_connection_loss(sensor, lifecycle_interface):
 
     _ = driver.node.create_subscription(
         WrenchStamped,
-        "/schunk/driver/data",
+        "/schunk/fts/data",
         partial(collect_messages, messages=messages_before),
         10,
     )

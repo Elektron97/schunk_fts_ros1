@@ -29,7 +29,7 @@ DRIVER_PARAMETERS = [
 def test_whether_we_cover_all_driver_parameters(driver):
     node = Node("test_startup_parameters")
     list_params_client = node.create_client(
-        ListParameters, "/schunk/driver/list_parameters"
+        ListParameters, "/schunk/fts/list_parameters"
     )
     assert list_params_client.wait_for_service(timeout_sec=2)
 
@@ -43,9 +43,7 @@ def test_whether_we_cover_all_driver_parameters(driver):
 def test_driver_has_expected_parameters_after_startup(driver, sensor):
     HOST, PORT = sensor
     node = Node("test_startup_parameters")
-    get_params_client = node.create_client(
-        GetParameters, "/schunk/driver/get_parameters"
-    )
+    get_params_client = node.create_client(GetParameters, "/schunk/fts/get_parameters")
     assert get_params_client.wait_for_service(timeout_sec=2)
 
     default_parameters = [
@@ -79,12 +77,8 @@ def test_driver_has_expected_parameters_after_startup(driver, sensor):
 
 def test_driver_supports_setting_parameters(driver):
     node = Node("test_setting_parameters")
-    get_params_client = node.create_client(
-        GetParameters, "/schunk/driver/get_parameters"
-    )
-    set_params_client = node.create_client(
-        SetParameters, "/schunk/driver/set_parameters"
-    )
+    get_params_client = node.create_client(GetParameters, "/schunk/fts/get_parameters")
+    set_params_client = node.create_client(SetParameters, "/schunk/fts/set_parameters")
     assert get_params_client.wait_for_service(timeout_sec=2)
     assert set_params_client.wait_for_service(timeout_sec=2)
 
@@ -124,12 +118,8 @@ def test_driver_supports_setting_parameters(driver):
 def test_valid_ip_address_formats(driver):
     """Test that various valid IP address formats are accepted."""
     node = Node("test_valid_ip_formats")
-    set_params_client = node.create_client(
-        SetParameters, "/schunk/driver/set_parameters"
-    )
-    get_params_client = node.create_client(
-        GetParameters, "/schunk/driver/get_parameters"
-    )
+    set_params_client = node.create_client(SetParameters, "/schunk/fts/set_parameters")
+    get_params_client = node.create_client(GetParameters, "/schunk/fts/get_parameters")
     assert set_params_client.wait_for_service(timeout_sec=2)
     assert get_params_client.wait_for_service(timeout_sec=2)
 
@@ -162,12 +152,8 @@ def test_valid_ip_address_formats(driver):
 def test_port_range_validation(driver):
     """Test that port numbers are validated within valid range."""
     node = Node("test_port_range")
-    set_params_client = node.create_client(
-        SetParameters, "/schunk/driver/set_parameters"
-    )
-    get_params_client = node.create_client(
-        GetParameters, "/schunk/driver/get_parameters"
-    )
+    set_params_client = node.create_client(SetParameters, "/schunk/fts/set_parameters")
+    get_params_client = node.create_client(GetParameters, "/schunk/fts/get_parameters")
     assert set_params_client.wait_for_service(timeout_sec=2)
     assert get_params_client.wait_for_service(timeout_sec=2)
 
@@ -196,12 +182,8 @@ def test_port_range_validation(driver):
 def test_streaming_port_validation(driver):
     """Test that streaming port parameter accepts valid values."""
     node = Node("test_streaming_port")
-    set_params_client = node.create_client(
-        SetParameters, "/schunk/driver/set_parameters"
-    )
-    get_params_client = node.create_client(
-        GetParameters, "/schunk/driver/get_parameters"
-    )
+    set_params_client = node.create_client(SetParameters, "/schunk/fts/set_parameters")
+    get_params_client = node.create_client(GetParameters, "/schunk/fts/get_parameters")
     assert set_params_client.wait_for_service(timeout_sec=2)
     assert get_params_client.wait_for_service(timeout_sec=2)
 
@@ -231,12 +213,8 @@ def test_streaming_port_validation(driver):
 def test_parameter_persistence_across_queries(driver):
     """Test that parameters persist their values across multiple queries."""
     node = Node("test_param_persistence")
-    set_params_client = node.create_client(
-        SetParameters, "/schunk/driver/set_parameters"
-    )
-    get_params_client = node.create_client(
-        GetParameters, "/schunk/driver/get_parameters"
-    )
+    set_params_client = node.create_client(SetParameters, "/schunk/fts/set_parameters")
+    get_params_client = node.create_client(GetParameters, "/schunk/fts/get_parameters")
     assert set_params_client.wait_for_service(timeout_sec=2)
     assert get_params_client.wait_for_service(timeout_sec=2)
 
@@ -264,12 +242,8 @@ def test_parameter_persistence_across_queries(driver):
 def test_multiple_parameter_updates(driver):
     """Test updating multiple parameters in sequence."""
     node = Node("test_multiple_updates")
-    set_params_client = node.create_client(
-        SetParameters, "/schunk/driver/set_parameters"
-    )
-    get_params_client = node.create_client(
-        GetParameters, "/schunk/driver/get_parameters"
-    )
+    set_params_client = node.create_client(SetParameters, "/schunk/fts/set_parameters")
+    get_params_client = node.create_client(GetParameters, "/schunk/fts/get_parameters")
     assert set_params_client.wait_for_service(timeout_sec=2)
     assert get_params_client.wait_for_service(timeout_sec=2)
 
@@ -313,9 +287,7 @@ def test_multiple_parameter_updates(driver):
 def test_parameter_type_consistency(driver):
     """Test that parameters maintain their correct types."""
     node = Node("test_type_consistency")
-    get_params_client = node.create_client(
-        GetParameters, "/schunk/driver/get_parameters"
-    )
+    get_params_client = node.create_client(GetParameters, "/schunk/fts/get_parameters")
     assert get_params_client.wait_for_service(timeout_sec=2)
 
     future = get_params_client.call_async(
@@ -337,9 +309,7 @@ def test_parameter_type_consistency(driver):
 def test_empty_string_host_parameter(driver):
     """Test behavior with empty string for host parameter."""
     node = Node("test_empty_host")
-    set_params_client = node.create_client(
-        SetParameters, "/schunk/driver/set_parameters"
-    )
+    set_params_client = node.create_client(SetParameters, "/schunk/fts/set_parameters")
     assert set_params_client.wait_for_service(timeout_sec=2)
 
     param = Parameter(
@@ -359,12 +329,8 @@ def test_empty_string_host_parameter(driver):
 def test_hostname_as_host_parameter(driver):
     """Test that hostnames (not just IPs) can be set as host parameter."""
     node = Node("test_hostname")
-    set_params_client = node.create_client(
-        SetParameters, "/schunk/driver/set_parameters"
-    )
-    get_params_client = node.create_client(
-        GetParameters, "/schunk/driver/get_parameters"
-    )
+    set_params_client = node.create_client(SetParameters, "/schunk/fts/set_parameters")
+    get_params_client = node.create_client(GetParameters, "/schunk/fts/get_parameters")
     assert set_params_client.wait_for_service(timeout_sec=2)
     assert get_params_client.wait_for_service(timeout_sec=2)
 

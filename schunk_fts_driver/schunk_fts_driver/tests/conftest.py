@@ -56,10 +56,10 @@ class LifecycleInterface(object):
     def __init__(self):
         self.node = Node("lifecycle_interface")
         self.change_state_client = self.node.create_client(
-            ChangeState, "/schunk/driver/change_state"
+            ChangeState, "/schunk/fts/change_state"
         )
         self.get_state_client = self.node.create_client(
-            GetState, "/schunk/driver/get_state"
+            GetState, "/schunk/fts/get_state"
         )
 
         self.change_state_client.wait_for_service(timeout_sec=2)

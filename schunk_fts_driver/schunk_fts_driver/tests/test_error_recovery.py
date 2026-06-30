@@ -38,7 +38,7 @@ def test_driver_handles_empty_data_buffer_gracefully(sensor, lifecycle_interface
 
     _ = driver.node.create_subscription(
         WrenchStamped,
-        "/schunk/driver/data",
+        "/schunk/fts/data",
         partial(collect_messages, messages=messages),
         10,
     )
@@ -69,7 +69,7 @@ def test_driver_continues_after_packet_skip(sensor, lifecycle_interface):
 
     _ = driver.node.create_subscription(
         WrenchStamped,
-        "/schunk/driver/data",
+        "/schunk/fts/data",
         partial(collect_messages, messages=messages),
         100,
     )
@@ -101,7 +101,7 @@ def test_invalid_service_command_returns_error(sensor, lifecycle_interface):
     driver.change_state(Transition.TRANSITION_ACTIVATE)
 
     node = Node("invalid_command_test")
-    cmd_client = node.create_client(SendCommand, "/schunk/driver/send_command")
+    cmd_client = node.create_client(SendCommand, "/schunk/fts/send_command")
     assert cmd_client.wait_for_service(timeout_sec=2.0)
 
     # Send an invalid command
@@ -127,7 +127,7 @@ def test_service_error_handling_with_exception(sensor, lifecycle_interface):
     driver.change_state(Transition.TRANSITION_ACTIVATE)
 
     node = Node("exception_test")
-    cmd_client = node.create_client(SendCommand, "/schunk/driver/send_command")
+    cmd_client = node.create_client(SendCommand, "/schunk/fts/send_command")
     assert cmd_client.wait_for_service(timeout_sec=2.0)
 
     # Try various potentially problematic commands
@@ -162,8 +162,8 @@ def test_recovery_after_service_failure(sensor, lifecycle_interface):
     driver.change_state(Transition.TRANSITION_ACTIVATE)
 
     node = Node("recovery_test")
-    cmd_client = node.create_client(SendCommand, "/schunk/driver/send_command")
-    tare_client = node.create_client(Trigger, "/schunk/driver/tare")
+    cmd_client = node.create_client(SendCommand, "/schunk/fts/send_command")
+    tare_client = node.create_client(Trigger, "/schunk/fts/tare")
     assert cmd_client.wait_for_service(timeout_sec=2.0)
     assert tare_client.wait_for_service(timeout_sec=2.0)
 
@@ -191,7 +191,7 @@ def test_recovery_after_service_failure(sensor, lifecycle_interface):
         messages.append(msg)
 
     _ = driver.node.create_subscription(
-        WrenchStamped, "/schunk/driver/data", partial(collect, messages=messages), 10
+        WrenchStamped, "/schunk/fts/data", partial(collect, messages=messages), 10
     )
 
     timeout = time.time() + 0.5
@@ -225,7 +225,7 @@ def test_diagnostic_status_updates_on_sensor_errors(sensor, lifecycle_interface)
 
     _ = driver.node.create_subscription(
         DiagnosticStatus,
-        "/schunk/driver/state",
+        "/schunk/fts/state",
         partial(collect_diagnostics, diagnostics=diagnostics),
         latching_qos,
     )
@@ -270,7 +270,7 @@ def test_driver_handles_counter_wraparound(sensor, lifecycle_interface):
 
     _ = driver.node.create_subscription(
         WrenchStamped,
-        "/schunk/driver/data",
+        "/schunk/fts/data",
         partial(collect_messages, messages=messages),
         100,
     )
@@ -309,7 +309,7 @@ def test_error_reporting_through_service_response(sensor, lifecycle_interface):
     driver.change_state(Transition.TRANSITION_ACTIVATE)
 
     node = Node("error_reporting_test")
-    cmd_client = node.create_client(SendCommand, "/schunk/driver/send_command")
+    cmd_client = node.create_client(SendCommand, "/schunk/fts/send_command")
     assert cmd_client.wait_for_service(timeout_sec=2.0)
 
     # Test various error codes
@@ -349,7 +349,7 @@ def test_driver_publishes_after_temporary_buffer_empty(sensor, lifecycle_interfa
 
     sub1 = driver.node.create_subscription(
         WrenchStamped,
-        "/schunk/driver/data",
+        "/schunk/fts/data",
         partial(collect_phase1, messages=messages_phase1),
         10,
     )
@@ -370,7 +370,7 @@ def test_driver_publishes_after_temporary_buffer_empty(sensor, lifecycle_interfa
 
     _ = driver.node.create_subscription(
         WrenchStamped,
-        "/schunk/driver/data",
+        "/schunk/fts/data",
         partial(collect_phase2, messages=messages_phase2),
         10,
     )
@@ -393,7 +393,7 @@ def test_command_with_0x_prefix_handling(sensor, lifecycle_interface):
     driver.change_state(Transition.TRANSITION_ACTIVATE)
 
     node = Node("prefix_test")
-    cmd_client = node.create_client(SendCommand, "/schunk/driver/send_command")
+    cmd_client = node.create_client(SendCommand, "/schunk/fts/send_command")
     assert cmd_client.wait_for_service(timeout_sec=2.0)
 
     # Test valid command with 0x prefix (tare command)
@@ -448,7 +448,7 @@ def test_continuous_operation_stress_test(sensor, lifecycle_interface):
 
     _ = driver.node.create_subscription(
         WrenchStamped,
-        "/schunk/driver/data",
+        "/schunk/fts/data",
         partial(collect_messages, messages=messages, errors=errors),
         10,
     )
@@ -496,7 +496,7 @@ def test_fallback_behavior_on_no_signal(sensor, lifecycle_interface):
 
     _ = driver.node.create_subscription(
         DiagnosticStatus,
-        "/schunk/driver/state",
+        "/schunk/fts/state",
         partial(collect_diagnostics, diagnostics=diagnostics),
         latching_qos,
     )

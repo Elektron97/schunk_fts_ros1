@@ -53,7 +53,7 @@ def call_service(node, client, request):
 
 def test_tare_service(service_client_node):
     """Test the successful execution of the tare service."""
-    cli = service_client_node.create_client(Trigger, "/schunk/driver/tare")
+    cli = service_client_node.create_client(Trigger, "/schunk/fts/tare")
     assert cli.wait_for_service(timeout_sec=2.0)
     req = Trigger.Request()
     result = call_service(service_client_node, cli, req)
@@ -64,7 +64,7 @@ def test_tare_service(service_client_node):
 
 def test_reset_tare_service(service_client_node):
     """Test the successful execution of the reset_tare service."""
-    cli = service_client_node.create_client(Trigger, "/schunk/driver/reset_tare")
+    cli = service_client_node.create_client(Trigger, "/schunk/fts/reset_tare")
     assert cli.wait_for_service(timeout_sec=2.0)
     req = Trigger.Request()
     result = call_service(service_client_node, cli, req)
@@ -75,7 +75,7 @@ def test_reset_tare_service(service_client_node):
 
 def test_send_command_service_success(service_client_node):
     """Test the send_command service with a valid command (tare)."""
-    cli = service_client_node.create_client(SendCommand, "/schunk/driver/send_command")
+    cli = service_client_node.create_client(SendCommand, "/schunk/fts/send_command")
     assert cli.wait_for_service(timeout_sec=2.0)
     req = SendCommand.Request()
     req.command_id = "12"
@@ -86,7 +86,7 @@ def test_send_command_service_success(service_client_node):
 
 def test_send_command_service_fail(service_client_node):
     """Test the send_command service with an invalid command."""
-    cli = service_client_node.create_client(SendCommand, "/schunk/driver/send_command")
+    cli = service_client_node.create_client(SendCommand, "/schunk/fts/send_command")
     assert cli.wait_for_service(timeout_sec=2.0)
     req = SendCommand.Request()
     req.command_id = "0xFF"  # Invalid command
@@ -107,7 +107,7 @@ def test_concurrent_tare_service_calls(service_client_node):
     executor_thread = threading.Thread(target=executor.spin, daemon=True)
     executor_thread.start()
 
-    cli = service_client_node.create_client(Trigger, "/schunk/driver/tare")
+    cli = service_client_node.create_client(Trigger, "/schunk/fts/tare")
     assert cli.wait_for_service(timeout_sec=5.0)
 
     results = []
@@ -165,7 +165,7 @@ def test_service_response_time(service_client_node):
     """Test that services respond within reasonable time."""
     import time
 
-    cli = service_client_node.create_client(Trigger, "/schunk/driver/tare")
+    cli = service_client_node.create_client(Trigger, "/schunk/fts/tare")
     assert cli.wait_for_service(timeout_sec=2.0)
 
     # Measure response time
@@ -192,7 +192,7 @@ def test_service_call_during_data_publishing(service_client_node, lifecycle_inte
 
     _ = lifecycle_interface.node.create_subscription(
         WrenchStamped,
-        "/schunk/driver/data",
+        "/schunk/fts/data",
         partial(collect, messages=messages),
         10,
     )
@@ -205,7 +205,7 @@ def test_service_call_during_data_publishing(service_client_node, lifecycle_inte
     assert initial_count > 0, "Should be receiving data"
 
     # Make a service call
-    cli = service_client_node.create_client(Trigger, "/schunk/driver/tare")
+    cli = service_client_node.create_client(Trigger, "/schunk/fts/tare")
     assert cli.wait_for_service(timeout_sec=2.0)
     req = Trigger.Request()
     result = call_service(service_client_node, cli, req)
@@ -229,11 +229,9 @@ def test_multiple_service_types_concurrently(service_client_node):
     executor_thread.start()
 
     # 3. Create clients and wait for services (safer to do this after executor starts).
-    tare_cli = service_client_node.create_client(Trigger, "/schunk/driver/tare")
-    reset_cli = service_client_node.create_client(Trigger, "/schunk/driver/reset_tare")
-    cmd_cli = service_client_node.create_client(
-        SendCommand, "/schunk/driver/send_command"
-    )
+    tare_cli = service_client_node.create_client(Trigger, "/schunk/fts/tare")
+    reset_cli = service_client_node.create_client(Trigger, "/schunk/fts/reset_tare")
+    cmd_cli = service_client_node.create_client(SendCommand, "/schunk/fts/send_command")
 
     assert tare_cli.wait_for_service(timeout_sec=2.0)
     assert reset_cli.wait_for_service(timeout_sec=2.0)
@@ -314,7 +312,7 @@ def test_multiple_service_types_concurrently(service_client_node):
 
 def test_send_command_with_various_formats(service_client_node):
     """Test send_command service with various command ID formats."""
-    cli = service_client_node.create_client(SendCommand, "/schunk/driver/send_command")
+    cli = service_client_node.create_client(SendCommand, "/schunk/fts/send_command")
     assert cli.wait_for_service(timeout_sec=2.0)
 
     # Test valid command with different formats
@@ -336,7 +334,7 @@ def test_send_command_with_various_formats(service_client_node):
 
 def test_service_error_messages_are_descriptive(service_client_node):
     """Test that service error messages are descriptive and helpful."""
-    cli = service_client_node.create_client(SendCommand, "/schunk/driver/send_command")
+    cli = service_client_node.create_client(SendCommand, "/schunk/fts/send_command")
     assert cli.wait_for_service(timeout_sec=2.0)
 
     # Test with various invalid commands
@@ -359,7 +357,7 @@ def test_service_error_messages_are_descriptive(service_client_node):
 
 def test_repeated_service_calls(service_client_node):
     """Test that services handle repeated calls correctly."""
-    cli = service_client_node.create_client(Trigger, "/schunk/driver/tare")
+    cli = service_client_node.create_client(Trigger, "/schunk/fts/tare")
     assert cli.wait_for_service(timeout_sec=2.0)
 
     # Make multiple sequential calls
@@ -375,7 +373,7 @@ def test_service_timeout_behavior(service_client_node):
     """Test service call timeout behavior."""
     import time
 
-    cli = service_client_node.create_client(Trigger, "/schunk/driver/tare")
+    cli = service_client_node.create_client(Trigger, "/schunk/fts/tare")
     assert cli.wait_for_service(timeout_sec=2.0)
 
     # Make a call with timeout
@@ -393,8 +391,8 @@ def test_service_timeout_behavior(service_client_node):
 
 def test_tare_and_reset_tare_sequence(service_client_node):
     """Test sequence of tare followed by reset_tare."""
-    tare_cli = service_client_node.create_client(Trigger, "/schunk/driver/tare")
-    reset_cli = service_client_node.create_client(Trigger, "/schunk/driver/reset_tare")
+    tare_cli = service_client_node.create_client(Trigger, "/schunk/fts/tare")
+    reset_cli = service_client_node.create_client(Trigger, "/schunk/fts/reset_tare")
 
     assert tare_cli.wait_for_service(timeout_sec=2.0)
     assert reset_cli.wait_for_service(timeout_sec=2.0)
@@ -416,7 +414,7 @@ def test_tare_and_reset_tare_sequence(service_client_node):
 
 def test_service_availability_after_error(service_client_node):
     """Test that services remain available after an error."""
-    cli = service_client_node.create_client(SendCommand, "/schunk/driver/send_command")
+    cli = service_client_node.create_client(SendCommand, "/schunk/fts/send_command")
     assert cli.wait_for_service(timeout_sec=2.0)
 
     # First, cause an error
@@ -438,7 +436,7 @@ def test_service_availability_after_error(service_client_node):
 def test_select_tool_setting_service(service_client_node):
     """Test the select_tool_setting service with valid tool indices."""
     cli = service_client_node.create_client(
-        SelectToolSetting, "/schunk/driver/select_tool_setting"
+        SelectToolSetting, "/schunk/fts/select_tool_setting"
     )
     assert cli.wait_for_service(timeout_sec=2.0)
 
@@ -457,7 +455,7 @@ def test_select_tool_setting_service(service_client_node):
 def test_select_tool_setting_invalid_index(service_client_node):
     """Test the select_tool_setting service with invalid tool indices."""
     cli = service_client_node.create_client(
-        SelectToolSetting, "/schunk/driver/select_tool_setting"
+        SelectToolSetting, "/schunk/fts/select_tool_setting"
     )
     assert cli.wait_for_service(timeout_sec=2.0)
 
@@ -479,7 +477,7 @@ def test_select_tool_setting_invalid_index(service_client_node):
 def test_select_noise_filter_service(service_client_node):
     """Test the select_noise_filter service with valid filter numbers."""
     cli = service_client_node.create_client(
-        SelectNoiseFilter, "/schunk/driver/select_noise_filter"
+        SelectNoiseFilter, "/schunk/fts/select_noise_filter"
     )
     assert cli.wait_for_service(timeout_sec=2.0)
 
@@ -500,7 +498,7 @@ def test_select_noise_filter_service(service_client_node):
 def test_select_noise_filter_invalid_number(service_client_node):
     """Test the select_noise_filter service with invalid filter numbers."""
     cli = service_client_node.create_client(
-        SelectNoiseFilter, "/schunk/driver/select_noise_filter"
+        SelectNoiseFilter, "/schunk/fts/select_noise_filter"
     )
     assert cli.wait_for_service(timeout_sec=2.0)
 
@@ -524,7 +522,7 @@ def test_select_noise_filter_invalid_number(service_client_node):
 def test_select_tool_setting_sequence(service_client_node):
     """Test switching between different tool settings."""
     cli = service_client_node.create_client(
-        SelectToolSetting, "/schunk/driver/select_tool_setting"
+        SelectToolSetting, "/schunk/fts/select_tool_setting"
     )
     assert cli.wait_for_service(timeout_sec=2.0)
 
@@ -540,7 +538,7 @@ def test_select_tool_setting_sequence(service_client_node):
 def test_select_noise_filter_sequence(service_client_node):
     """Test switching between different noise filters."""
     cli = service_client_node.create_client(
-        SelectNoiseFilter, "/schunk/driver/select_noise_filter"
+        SelectNoiseFilter, "/schunk/fts/select_noise_filter"
     )
     assert cli.wait_for_service(timeout_sec=2.0)
 
@@ -563,10 +561,10 @@ def test_tool_and_filter_services_concurrent(service_client_node):
     executor_thread.start()
 
     tool_cli = service_client_node.create_client(
-        SelectToolSetting, "/schunk/driver/select_tool_setting"
+        SelectToolSetting, "/schunk/fts/select_tool_setting"
     )
     filter_cli = service_client_node.create_client(
-        SelectNoiseFilter, "/schunk/driver/select_noise_filter"
+        SelectNoiseFilter, "/schunk/fts/select_noise_filter"
     )
 
     assert tool_cli.wait_for_service(timeout_sec=2.0)

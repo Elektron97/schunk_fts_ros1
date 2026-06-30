@@ -44,7 +44,7 @@ def test_concurrent_data_publishing_and_state_transitions(sensor, lifecycle_inte
 
     _ = driver.node.create_subscription(
         WrenchStamped,
-        "/schunk/driver/data",
+        "/schunk/fts/data",
         partial(collect_messages, messages=messages),
         10,
     )
@@ -90,7 +90,7 @@ def test_concurrent_service_calls_thread_safety(sensor, lifecycle_interface):
     executor_thread = threading.Thread(target=executor.spin, daemon=True)
     executor_thread.start()
 
-    tare_client = node.create_client(Trigger, "/schunk/driver/tare")
+    tare_client = node.create_client(Trigger, "/schunk/fts/tare")
     assert tare_client.wait_for_service(timeout_sec=2.0)
 
     results = []
@@ -185,7 +185,7 @@ def test_mutex_protection_during_publisher_destruction(sensor, lifecycle_interfa
 
     _ = driver.node.create_subscription(
         WrenchStamped,
-        "/schunk/driver/data",
+        "/schunk/fts/data",
         partial(collect_messages, messages=messages),
         10,
     )
@@ -228,13 +228,13 @@ def test_no_race_condition_in_data_buffer_access(sensor, lifecycle_interface):
         messages.append(msg)
 
     _ = driver.node.create_subscription(
-        WrenchStamped, "/schunk/driver/data", partial(collect1, messages=messages1), 10
+        WrenchStamped, "/schunk/fts/data", partial(collect1, messages=messages1), 10
     )
     _ = driver.node.create_subscription(
-        WrenchStamped, "/schunk/driver/data", partial(collect2, messages=messages2), 10
+        WrenchStamped, "/schunk/fts/data", partial(collect2, messages=messages2), 10
     )
     _ = driver.node.create_subscription(
-        WrenchStamped, "/schunk/driver/data", partial(collect3, messages=messages3), 10
+        WrenchStamped, "/schunk/fts/data", partial(collect3, messages=messages3), 10
     )
 
     # Spin rapidly to stress test concurrent access
@@ -268,8 +268,8 @@ def test_service_calls_during_active_publishing(sensor, lifecycle_interface):
     driver.change_state(Transition.TRANSITION_ACTIVATE)
 
     node = Node("service_caller_during_publish")
-    tare_client = node.create_client(Trigger, "/schunk/driver/tare")
-    send_cmd_client = node.create_client(SendCommand, "/schunk/driver/send_command")
+    tare_client = node.create_client(Trigger, "/schunk/fts/tare")
+    send_cmd_client = node.create_client(SendCommand, "/schunk/fts/send_command")
     assert tare_client.wait_for_service(timeout_sec=2.0)
     assert send_cmd_client.wait_for_service(timeout_sec=2.0)
 
@@ -280,7 +280,7 @@ def test_service_calls_during_active_publishing(sensor, lifecycle_interface):
 
     _ = driver.node.create_subscription(
         WrenchStamped,
-        "/schunk/driver/data",
+        "/schunk/fts/data",
         partial(collect_messages, messages=messages),
         10,
     )
@@ -361,7 +361,7 @@ def test_callback_group_isolation(sensor, lifecycle_interface):
     executor_thread = threading.Thread(target=executor.spin, daemon=True)
     executor_thread.start()
 
-    tare_client = client_node.create_client(Trigger, "/schunk/driver/tare")
+    tare_client = client_node.create_client(Trigger, "/schunk/fts/tare")
     assert tare_client.wait_for_service(timeout_sec=2.0)
 
     data_received = []
@@ -375,7 +375,7 @@ def test_callback_group_isolation(sensor, lifecycle_interface):
     # Subscription is on driver.node, which is managed by the executor
     _ = driver.node.create_subscription(
         WrenchStamped,
-        "/schunk/driver/data",
+        "/schunk/fts/data",
         collect_data,
         10,
     )
@@ -446,7 +446,7 @@ def test_no_data_corruption_under_stress(sensor, lifecycle_interface):
     corrupted = []
     _ = driver.node.create_subscription(
         WrenchStamped,
-        "/schunk/driver/data",
+        "/schunk/fts/data",
         partial(check_data_validity, messages=messages, corrupted=corrupted),
         10,
     )
@@ -482,7 +482,7 @@ def test_repeated_activation_cycles_thread_safety(sensor, lifecycle_interface):
 
         sub = driver.node.create_subscription(
             WrenchStamped,
-            "/schunk/driver/data",
+            "/schunk/fts/data",
             partial(collect, messages=messages),
             10,
         )

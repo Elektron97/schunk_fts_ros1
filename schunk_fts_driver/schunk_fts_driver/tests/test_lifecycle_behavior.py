@@ -213,7 +213,7 @@ def test_activate_starts_data_publishing(sensor, lifecycle_interface):
 
     _ = driver.node.create_subscription(
         WrenchStamped,
-        "/schunk/driver/data",
+        "/schunk/fts/data",
         partial(collect_before, messages=messages_before),
         10,
     )
@@ -237,7 +237,7 @@ def test_activate_starts_data_publishing(sensor, lifecycle_interface):
     # Subscribe again after activate
     _ = driver.node.create_subscription(
         WrenchStamped,
-        "/schunk/driver/data",
+        "/schunk/fts/data",
         partial(collect_after, messages=messages_after),
         10,
     )
@@ -271,7 +271,7 @@ def test_deactivate_stops_data_publishing(sensor, lifecycle_interface):
 
     sub = driver.node.create_subscription(
         WrenchStamped,
-        "/schunk/driver/data",
+        "/schunk/fts/data",
         partial(collect_active, messages=messages_active),
         10,
     )
@@ -295,7 +295,7 @@ def test_deactivate_stops_data_publishing(sensor, lifecycle_interface):
 
     _ = driver.node.create_subscription(
         WrenchStamped,
-        "/schunk/driver/data",
+        "/schunk/fts/data",
         partial(collect_inactive, messages=messages_inactive),
         10,
     )
@@ -340,9 +340,7 @@ def test_error_handling_during_configure(sensor, lifecycle_interface):
 
     # Set an invalid host to force configure to fail
     node = Node("test_configure_error")
-    set_params_client = node.create_client(
-        SetParameters, "/schunk/driver/set_parameters"
-    )
+    set_params_client = node.create_client(SetParameters, "/schunk/fts/set_parameters")
     assert set_params_client.wait_for_service(timeout_sec=2)
 
     # Set unreachable host
@@ -394,8 +392,8 @@ def test_services_available_in_active_state(sensor, lifecycle_interface):
 
     # Check that services are available
     node = Node("test_services_available")
-    tare_client = node.create_client(Trigger, "/schunk/driver/tare")
-    reset_tare_client = node.create_client(Trigger, "/schunk/driver/reset_tare")
+    tare_client = node.create_client(Trigger, "/schunk/fts/tare")
+    reset_tare_client = node.create_client(Trigger, "/schunk/fts/reset_tare")
 
     assert tare_client.wait_for_service(
         timeout_sec=2.0
@@ -419,7 +417,7 @@ def test_services_not_available_in_inactive_state(sensor, lifecycle_interface):
 
     # In inactive state, services should not be available
     node = Node("test_services_inactive")
-    tare_client = node.create_client(Trigger, "/schunk/driver/tare")
+    tare_client = node.create_client(Trigger, "/schunk/fts/tare")
 
     # Services should not be available (or timeout quickly)
     service_available = tare_client.wait_for_service(timeout_sec=0.5)

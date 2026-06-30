@@ -43,7 +43,7 @@ def test_driver_publishes_force_torque_data(lifecycle_interface):
 
     _ = driver.node.create_subscription(
         WrenchStamped,
-        "/schunk/driver/data",
+        "/schunk/fts/data",
         partial(check_fields, messages=messages),
         1,
     )
@@ -70,7 +70,7 @@ def test_data_publishing_rate(lifecycle_interface):
 
     _ = driver.node.create_subscription(
         WrenchStamped,
-        "/schunk/driver/data",
+        "/schunk/fts/data",
         partial(collect_messages, messages=messages),
         10,
     )
@@ -117,7 +117,7 @@ def test_no_data_published_when_inactive(lifecycle_interface):
 
     _ = driver.node.create_subscription(
         WrenchStamped,
-        "/schunk/driver/data",
+        "/schunk/fts/data",
         partial(collect_messages, messages=messages),
         10,
     )
@@ -147,7 +147,7 @@ def test_data_publishing_stops_after_deactivate(lifecycle_interface):
 
     sub = driver.node.create_subscription(
         WrenchStamped,
-        "/schunk/driver/data",
+        "/schunk/fts/data",
         partial(collect_messages_before, messages=messages_before),
         10,
     )
@@ -166,7 +166,7 @@ def test_data_publishing_stops_after_deactivate(lifecycle_interface):
     driver.node.destroy_subscription(sub)
     _ = driver.node.create_subscription(
         WrenchStamped,
-        "/schunk/driver/data",
+        "/schunk/fts/data",
         partial(collect_messages_before, messages=messages_after),
         10,
     )
@@ -193,7 +193,7 @@ def test_message_counter_increments(lifecycle_interface):
 
     _ = driver.node.create_subscription(
         WrenchStamped,
-        "/schunk/driver/data",
+        "/schunk/fts/data",
         partial(collect_messages, messages=messages),
         10,
     )
@@ -246,7 +246,7 @@ def test_diagnostic_status_published(lifecycle_interface):
 
     _ = driver.node.create_subscription(
         DiagnosticStatus,
-        "/schunk/driver/state",
+        "/schunk/fts/state",
         partial(collect_diagnostics, messages=messages),
         latching_qos,
     )
@@ -296,7 +296,7 @@ def test_diagnostic_status_ok_when_sensor_healthy(lifecycle_interface):
 
     _ = driver.node.create_subscription(
         DiagnosticStatus,
-        "/schunk/driver/state",
+        "/schunk/fts/state",
         partial(collect_diagnostics, messages=messages),
         latching_qos,
     )
@@ -348,7 +348,7 @@ def test_diagnostic_qos_is_latching(lifecycle_interface):
 
     _ = driver.node.create_subscription(
         DiagnosticStatus,
-        "/schunk/driver/state",
+        "/schunk/fts/state",
         partial(collect_diagnostics, messages=messages),
         latching_qos,
     )
@@ -378,7 +378,7 @@ def test_frame_id_matches_node_name(lifecycle_interface):
 
     _ = driver.node.create_subscription(
         WrenchStamped,
-        "/schunk/driver/data",
+        "/schunk/fts/data",
         partial(collect_messages, messages=messages),
         1,
     )
@@ -419,19 +419,19 @@ def test_concurrent_subscribers(lifecycle_interface):
     # Create multiple subscribers
     _ = driver.node.create_subscription(
         WrenchStamped,
-        "/schunk/driver/data",
+        "/schunk/fts/data",
         partial(collect_messages1, messages=messages1),
         10,
     )
     _ = driver.node.create_subscription(
         WrenchStamped,
-        "/schunk/driver/data",
+        "/schunk/fts/data",
         partial(collect_messages2, messages=messages2),
         10,
     )
     _ = driver.node.create_subscription(
         WrenchStamped,
-        "/schunk/driver/data",
+        "/schunk/fts/data",
         partial(collect_messages3, messages=messages3),
         10,
     )
@@ -473,7 +473,7 @@ def test_repeated_activation_cycles(lifecycle_interface):
 
         sub = driver.node.create_subscription(
             WrenchStamped,
-            "/schunk/driver/data",
+            "/schunk/fts/data",
             partial(collect_messages, messages=messages),
             10,
         )
@@ -503,7 +503,7 @@ def test_wrench_data_fields_are_floats(lifecycle_interface):
 
     _ = driver.node.create_subscription(
         WrenchStamped,
-        "/schunk/driver/data",
+        "/schunk/fts/data",
         partial(collect_messages, messages=messages),
         1,
     )
@@ -541,7 +541,7 @@ def test_timestamp_increases_monotonically(lifecycle_interface):
 
     _ = driver.node.create_subscription(
         WrenchStamped,
-        "/schunk/driver/data",
+        "/schunk/fts/data",
         partial(collect_messages, messages=messages),
         100,
     )

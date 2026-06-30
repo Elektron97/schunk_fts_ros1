@@ -51,7 +51,7 @@ def generate_launch_description():
                 package="schunk_fts_driver",
                 namespace=LaunchConfiguration("namespace"),
                 executable="driver.py",
-                name="driver",
+                name="fts",
                 parameters=[
                     {"host": LaunchConfiguration("host")},
                     {"port": LaunchConfiguration("port")},
