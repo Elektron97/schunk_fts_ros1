@@ -17,7 +17,7 @@ setup(
             glob(package_name + "/config/*.json"),
         ),
     ],
-    install_requires=["setuptools", "requests==2.32.3", "psutil==5.9.0"],
+    install_requires=["requests==2.34.2", "psutil==7.2.2"],
     zip_safe=True,
     author="Stefan Scherzinger",
     author_email="stefan.scherzinger@de.schunk.com",
