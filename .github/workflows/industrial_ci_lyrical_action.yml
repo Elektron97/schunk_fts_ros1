@@ -15,7 +15,8 @@ jobs:
   industrial_ci:
     env:
       BEFORE_BUILD_TARGET_WORKSPACE: '.github/script/install_dependencies.sh'
-      BEFORE_RUN_TARGET_TEST: '.github/script/install_dummy.sh'
+      NOT_TEST_BUILD: 'true'
+      AFTER_SCRIPT: 'bash "$TARGET_REPO_PATH/.github/script/run_pytest_lyrical.sh"'
 
     strategy:
       fail-fast: false
