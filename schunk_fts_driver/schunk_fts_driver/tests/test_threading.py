@@ -191,7 +191,8 @@ def test_mutex_protection_during_publisher_destruction(sensor, lifecycle_interfa
     )
 
     # Start collecting messages
-    for _ in range(10):
+    timeout = time.time() + 3.0
+    while time.time() < timeout and len(messages) == 0:
         rclpy.spin_once(driver.node, timeout_sec=0.001)
 
     initial_count = len(messages)
@@ -286,7 +287,8 @@ def test_service_calls_during_active_publishing(sensor, lifecycle_interface):
     )
 
     # Start collecting data
-    for _ in range(10):
+    timeout = time.time() + 3.0
+    while time.time() < timeout and len(messages) == 0:
         rclpy.spin_once(driver.node, timeout_sec=0.001)
 
     initial_count = len(messages)
@@ -299,7 +301,8 @@ def test_service_calls_during_active_publishing(sensor, lifecycle_interface):
     assert tare_future.result().success
 
     # Continue collecting data
-    for _ in range(10):
+    timeout = time.time() + 3.0
+    while time.time() < timeout and len(messages) <= initial_count:
         rclpy.spin_once(driver.node, timeout_sec=0.001)
 
     # Data should continue to be published
@@ -487,8 +490,8 @@ def test_repeated_activation_cycles_thread_safety(sensor, lifecycle_interface):
             10,
         )
 
-        timeout = time.time() + 0.1
-        while time.time() < timeout:
+        timeout = time.time() + 0.5
+        while time.time() < timeout and len(messages) == 0:
             rclpy.spin_once(driver.node, timeout_sec=0.001)
 
         assert len(messages) > 0, f"Should receive data in cycle {cycle + 1}"

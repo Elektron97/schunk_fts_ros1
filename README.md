@@ -20,11 +20,11 @@
 
 ---
 
-A ROS2 driver for SCHUNK force-torque sensors with 1000 Hz data streaming, automatic reconnection, and lifecycle management. Works with SCHUNK FT-Sensors with Ethernet Interface Box (FTS IFB-EN Ident.-Number 1651726 or FTS IFB-EN-IP67 Ident.-Number 1651748).
+A ROS2 driver for SCHUNK force-torque sensors with configurable UDP data streaming, automatic reconnection, and lifecycle management. Works with SCHUNK FT-Sensors with Ethernet Interface Box (FTS IFB-EN Ident.-Number 1651726 or FTS IFB-EN-IP67 Ident.-Number 1651748).
 
 ## Features
 
-- 1000 Hz force-torque data streaming via UDP
+- Configurable force-torque data streaming via UDP: 1000, 500, 250, 100, or 8000 Hz
 - Automatic reconnection e.g. on power loss
 - ROS2 lifecycle node with controlled state transitions
 - Tare operations and tool settings (0-3)
@@ -117,6 +117,8 @@ ros2 lifecycle set /schunk/fts activate
 **Low rate**: Check CPU load, network quality, ensure driver is ACTIVE
 For high-frequency RT applications, consider using a industrial Ethernet variant of the sensor as they support 8000 Hz.
 
+**Output rate**: The Python library accepts `output_rate_hz` values `1000`, `500`, `250`, `100`, and `8000`. The `8000` setting uses the sensor's 500 Hz UDP packaged mode with 16 sequential datapoints per UDP packet.
+
 **Wrong data**: Tare the sensor, check tool setting, verify status topic
 
 **Build fails**: Source ROS2, run `rosdep install`, try clean build
@@ -125,7 +127,7 @@ For high-frequency RT applications, consider using a industrial Ethernet variant
 
 | Topic | Type | Description |
 |-------|------|-------------|
-| `/schunk/fts/data` | `geometry_msgs/WrenchStamped` | Force-torque measurements at 1000 Hz |
+| `/schunk/fts/data` | `geometry_msgs/WrenchStamped` | Force-torque measurements at the configured output rate |
 | `/schunk/fts/state` | `diagnostic_msgs/DiagnosticStatus` | Sensor status and diagnostics |
 
 ## Services

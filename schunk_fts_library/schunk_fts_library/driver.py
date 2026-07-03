@@ -33,6 +33,17 @@ from dataclasses import dataclass
 import struct
 
 
+OUTPUT_RATE_PARAMETER_INDEX = "1020"
+OUTPUT_RATE_PARAMETER_SUBINDEX = "00"
+OUTPUT_RATE_HZ_TO_PARAMETER_VALUE = {
+    1000: "00",
+    500: "01",
+    250: "02",
+    100: "03",
+    8000: "0a",
+}
+
+
 @dataclass
 class SensorStatus:
     ready: bool
@@ -73,11 +84,28 @@ class SensorStatus:
 
 class Driver(object):
     def __init__(
-        self, host: str = "192.168.0.100", port: int = 82, streaming_port: int = 54843
+        self,
+        host: str = "192.168.0.100",
+        port: int = 82,
+        streaming_port: int = 54843,
+        output_rate_hz: int = 1000,
     ) -> None:
+        if output_rate_hz not in OUTPUT_RATE_HZ_TO_PARAMETER_VALUE:
+            supported_rates = ", ".join(
+                str(rate) for rate in sorted(OUTPUT_RATE_HZ_TO_PARAMETER_VALUE)
+            )
+            raise ValueError(
+                f"Unsupported output_rate_hz {output_rate_hz}. "
+                f"Supported rates are: {supported_rates}"
+            )
+
         self.host = host
         self.port = port
         self.streaming_port = streaming_port
+        self.output_rate_hz = output_rate_hz
+        self.output_rate_parameter_value = OUTPUT_RATE_HZ_TO_PARAMETER_VALUE[
+            output_rate_hz
+        ]
         self.connection: Connection = Connection(host=host, port=port)
         self.ft_data: FTDataBuffer = FTDataBuffer()
         self.stream: Stream = Stream(port=streaming_port)
@@ -134,6 +162,11 @@ class Driver(object):
         self.hardware_id = self.get_parameter(
             index="0001", subindex="03"
         ).param_value  # Product ID Parameter
+        if not self._configure_output_rate():
+            self.is_streaming = False
+            self.auto_reconnect = False
+            self.connection.close()
+            return False
         self.start_udp_stream()
         return True
 
@@ -188,6 +221,14 @@ class Driver(object):
         if data:
             response.from_bytes(data)
         return response
+
+    def _configure_output_rate(self) -> bool:
+        response = self.set_parameter(
+            value=self.output_rate_parameter_value,
+            index=OUTPUT_RATE_PARAMETER_INDEX,
+            subindex=OUTPUT_RATE_PARAMETER_SUBINDEX,
+        )
+        return response.error_code == "00"
 
     def run_command(self, command: str) -> CommandResponse:
         req = CommandRequest()
@@ -316,6 +357,11 @@ class Driver(object):
             # Try to start UDP stream with proper error handling
             try:
                 with self._lock:
+                    if not self._configure_output_rate():
+                        print("Failed to configure sensor output rate")
+                        self.connection.close()
+                        return False
+
                     response = self.start_udp_stream()
 
                     # Check if we got a valid response structure

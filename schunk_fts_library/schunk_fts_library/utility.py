@@ -19,10 +19,11 @@ from socket import socket as Socket
 from threading import Lock, Event
 from typing import TypedDict
 import time
+from collections import deque
 from queue import Queue, Empty, Full
 
 
-class FTData(TypedDict):
+class FTData(TypedDict, total=False):
     sync: bytes
     counter: int
     payload: int
@@ -34,16 +35,19 @@ class FTData(TypedDict):
     tx: float
     ty: float
     tz: float
+    sample_index: int
+    samples_per_packet: int
 
 
 class FTDataBuffer(object):
     def __init__(self, maxsize=100) -> None:
         self._queue: Queue[FTData] = Queue(maxsize=maxsize)
+        self._pending_samples: deque[FTData] = deque()
         self._last_packet_time = time.monotonic()
         self._no_data_warning_printed = False
 
     def __len__(self):
-        return self._queue.qsize()
+        return self._queue.qsize() + len(self._pending_samples)
 
     def put(self, packet: bytearray) -> None:
         try:
@@ -55,10 +59,16 @@ class FTDataBuffer(object):
             pass
 
     def get(self) -> FTData | None:
+        if self._pending_samples:
+            self._last_packet_time = time.monotonic()
+            return self._pending_samples.popleft()
+
         try:
             packet = self._queue.get(timeout=0.1)
             self._last_packet_time = time.monotonic()
-            return self.decode(packet)
+            samples = self.decode_packet(packet)
+            self._pending_samples.extend(samples[1:])
+            return samples[0]
         except Empty:
             if (
                 time.monotonic() - self._last_packet_time > 1.0
@@ -83,20 +93,73 @@ class FTDataBuffer(object):
 
     @staticmethod
     def decode(data: bytearray) -> FTData:
+        return FTDataBuffer.decode_packet(data)[0]
+
+    @staticmethod
+    def decode_packet(data: bytearray) -> list[FTData]:
+        counter, payload_len = struct.unpack("<HH", data[2:6])
+
+        if payload_len == 29:
+            values = struct.unpack("<B I ffffff", data[6:])
+            return [
+                FTData(
+                    sync=data[0:2],
+                    counter=counter,
+                    payload=payload_len,
+                    id=values[0],
+                    status_bits=values[1],
+                    fx=values[2],
+                    fy=values[3],
+                    fz=values[4],
+                    tx=values[5],
+                    ty=values[6],
+                    tz=values[7],
+                )
+            ]
+
+        if payload_len == 449:
+            packet_id = data[6]
+            samples = []
+            sample_size = struct.calcsize("<I ffffff")
+            offset = 7
+            for sample_index in range(16):
+                values = struct.unpack_from("<I ffffff", data, offset)
+                samples.append(
+                    FTData(
+                        sync=data[0:2],
+                        counter=counter,
+                        payload=payload_len,
+                        id=packet_id,
+                        status_bits=values[0],
+                        fx=values[1],
+                        fy=values[2],
+                        fz=values[3],
+                        tx=values[4],
+                        ty=values[5],
+                        tz=values[6],
+                        sample_index=sample_index,
+                        samples_per_packet=16,
+                    )
+                )
+                offset += sample_size
+            return samples
+
         values = struct.unpack("<HHB I ffffff", data[2:])  # skip sync (first 2 bytes)
-        return FTData(
-            sync=data[0:2],
-            counter=values[0],
-            payload=values[1],
-            id=values[2],
-            status_bits=values[3],
-            fx=values[4],
-            fy=values[5],
-            fz=values[6],
-            tx=values[7],
-            ty=values[8],
-            tz=values[9],
-        )
+        return [
+            FTData(
+                sync=data[0:2],
+                counter=values[0],
+                payload=values[1],
+                id=values[2],
+                status_bits=values[3],
+                fx=values[4],
+                fy=values[5],
+                fz=values[6],
+                tx=values[7],
+                ty=values[8],
+                tz=values[9],
+            )
+        ]
 
 
 class Stream(object):
@@ -115,7 +178,7 @@ class Stream(object):
         if self.is_open():
             while True:
                 try:
-                    data, _ = self.socket.recvfrom(1024)
+                    data, _ = self.socket.recvfrom(8192)
                     packets.append(data)
                 except BlockingIOError:
                     break

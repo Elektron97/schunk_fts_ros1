@@ -21,8 +21,8 @@ pip install .
 from schunk_fts_library.driver import Driver
 import time
 
-# Create driver
-driver = Driver(host="192.168.0.100", port=82, streaming_port=54843)
+# Create driver. Supported output rates: 1000, 500, 250, 100, 8000 Hz.
+driver = Driver(host="192.168.0.100", port=82, streaming_port=54843, output_rate_hz=1000)
 
 # Start streaming with auto-reconnect
 driver.streaming_on()
@@ -38,3 +38,5 @@ for _ in range(10000):
 # Stop streaming
 driver.streaming_off()
 ```
+
+`output_rate_hz=8000` selects the sensor's 500 Hz UDP packaged mode. Each UDP packet contains 16 sequential datapoints, and `sample()` returns those datapoints one at a time.

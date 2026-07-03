@@ -94,6 +94,31 @@ def test_buffer_offers_putting_and_getting_data():
     assert buffer.get() == data
 
 
+def test_buffer_expands_packaged_packets_into_samples():
+    buffer = FTDataBuffer()
+    packet = bytearray(b"\xFF\xFF")
+    packet += struct.pack("<HHB", 77, 449, 3)
+    for sample_index in range(16):
+        packet += struct.pack(
+            "<I ffffff",
+            0x00000001,
+            float(sample_index),
+            float(sample_index),
+            float(sample_index),
+            float(sample_index),
+            float(sample_index),
+            float(sample_index),
+        )
+
+    buffer.put(packet)
+    samples = [buffer.get() for _ in range(16)]
+
+    assert all(sample is not None for sample in samples)
+    assert [sample["sample_index"] for sample in samples if sample] == list(range(16))
+    assert all(sample["counter"] == 77 for sample in samples if sample)
+    assert buffer.get() is None
+
+
 def test_buffer_knows_expected_length():
     buffer = FTDataBuffer(maxsize=3)
 

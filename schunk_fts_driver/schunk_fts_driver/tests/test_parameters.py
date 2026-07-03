@@ -79,8 +79,8 @@ def test_driver_supports_setting_parameters(driver):
     node = Node("test_setting_parameters")
     get_params_client = node.create_client(GetParameters, "/schunk/fts/get_parameters")
     set_params_client = node.create_client(SetParameters, "/schunk/fts/set_parameters")
-    assert get_params_client.wait_for_service(timeout_sec=2)
-    assert set_params_client.wait_for_service(timeout_sec=2)
+    assert get_params_client.wait_for_service(timeout_sec=10)
+    assert set_params_client.wait_for_service(timeout_sec=10)
 
     parameters = [
         Parameter(

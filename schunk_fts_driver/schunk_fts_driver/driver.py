@@ -114,6 +114,35 @@ class Driver(Node):
         self._is_sensor_ok: bool = False
         self._connection_lost: bool = False
 
+    @staticmethod
+    def _packet_gap(previous_counter: int, counter: int) -> int:
+        if previous_counter == -1:
+            return 0
+        return (counter - previous_counter - 1 + 65536) % 65536
+
+    @staticmethod
+    def _sample_period_ns_for_rate(output_rate_hz: int) -> int:
+        return round(1_000_000_000 / output_rate_hz)
+
+    @classmethod
+    def _calculate_sample_timestamp_ns(
+        cls,
+        data: FTData,
+        base_counter: int,
+        base_stamp_ns: int,
+        output_rate_hz: int,
+    ) -> int:
+        sample_index = int(data.get("sample_index", 0))
+        samples_per_packet = int(data.get("samples_per_packet", 1))
+        sample_period_ns = cls._sample_period_ns_for_rate(output_rate_hz)
+        packet_period_ns = sample_period_ns * samples_per_packet
+        counter_delta = (int(data["counter"]) - base_counter + 65536) % 65536
+        return (
+            base_stamp_ns
+            + counter_delta * packet_period_ns
+            + sample_index * sample_period_ns
+        )
+
     def on_configure(self, state: State) -> TransitionCallbackReturn:
         self.get_logger().debug("on_configure() is called.")
         self.sensor.streaming_on()
@@ -198,12 +227,14 @@ class Driver(Node):
         garbage_collector.enable()
 
         self.stop_event.set()
+        if self.thread.is_alive():
+            self.thread.join()
+
         with self.publisher_lock:
             self.destroy_publisher(self.ft_data_publisher)
             self.ft_data_publisher = None
             self.destroy_publisher(self.ft_state_publisher)
             self.ft_state_publisher = None
-        self.thread.join()
 
         # Destroy services
         if self.send_command_service:
@@ -282,29 +313,40 @@ class Driver(Node):
                         self._last_state_level = DiagnosticStatus.OK
 
             counter = data["counter"]  # type: ignore
+            is_new_udp_packet = (
+                self._last_counter == -1 or counter != self._last_counter
+            )
 
-            # Skip packet loss check right after reconnection
-            if self._last_counter != -1 and counter != (self._last_counter + 1) % 65536:
-                packets_skipped = (counter - self._last_counter - 1 + 65536) % 65536
-                self.get_logger().warn(
-                    f"Loop is too slow! "
-                    f"Skipped {packets_skipped} packets. "
-                    f"(Last: {self._last_counter}, New: {counter})"
-                )
-            self._last_counter = counter
+            if is_new_udp_packet:
+                packets_skipped = self._packet_gap(self._last_counter, counter)
+                if packets_skipped > 0:
+                    self.get_logger().warn(
+                        f"Loop is too slow! "
+                        f"Skipped {packets_skipped} packets. "
+                        f"(Last: {self._last_counter}, New: {counter})"
+                    )
 
             level, message = self._get_status_level(data)
             self._is_sensor_ok = level == DiagnosticStatus.OK
             if self._is_sensor_ok:
-                if self._base_stamp_ros is None or counter < self._last_counter:
+                if self._base_stamp_ros is None:
                     self._base_stamp_ros = self.get_clock().now()
                     self._base_stamp_ns = (
                         self._base_stamp_ros.nanoseconds  # type: ignore
                     )
+                    sample_index = int(data.get("sample_index", 0))
+                    self._base_stamp_ns -= (
+                        sample_index
+                        * self._sample_period_ns_for_rate(self.sensor.output_rate_hz)
+                    )
                     self._base_counter = counter
 
-                counter_delta = counter - self._base_counter
-                current_stamp_ns = self._base_stamp_ns + (counter_delta * 1_000_000)
+                current_stamp_ns = self._calculate_sample_timestamp_ns(
+                    data=data,
+                    base_counter=self._base_counter,
+                    base_stamp_ns=self._base_stamp_ns,
+                    output_rate_hz=self.sensor.output_rate_hz,
+                )
 
                 data_msg.header.stamp.sec = current_stamp_ns // 1_000_000_000
                 data_msg.header.stamp.nanosec = current_stamp_ns % 1_000_000_000
@@ -315,14 +357,20 @@ class Driver(Node):
                 data_msg.wrench.torque.y = data["ty"]  # type: ignore
                 data_msg.wrench.torque.z = data["tz"]  # type: ignore
 
+            if is_new_udp_packet:
+                self._last_counter = counter
+
             with self.publisher_lock:
-                if self.ft_data_publisher and self._is_sensor_ok:
-                    self.ft_data_publisher.publish(data_msg)
-                if self.ft_state_publisher and level != self._last_state_level:
-                    state_msg.level = level
-                    state_msg.message = message
-                    self._last_state_level = level  # type: ignore
-                    self.ft_state_publisher.publish(state_msg)
+                try:
+                    if self.ft_data_publisher and self._is_sensor_ok:
+                        self.ft_data_publisher.publish(data_msg)
+                    if self.ft_state_publisher and level != self._last_state_level:
+                        state_msg.level = level
+                        state_msg.message = message
+                        self._last_state_level = level  # type: ignore
+                        self.ft_state_publisher.publish(state_msg)
+                except Exception:
+                    return
 
     def _get_status_level(self, data: FTData | None = None) -> tuple[bytes, str]:
         status = self.sensor.get_status(data)

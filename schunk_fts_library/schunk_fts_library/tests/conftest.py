@@ -35,6 +35,7 @@ def send_messages():
 def pytest_terminal_summary(terminalreporter, exitstatus, config):
     if hasattr(config, "sensor_ip"):
         print("\n=== Sensor Summary ===")
+        print(f"Sensor kind: {config.sensor_kind}")
         print(f"Sensor used: {config.sensor_ip}")
         print(f"Port used: {config.sensor_port}")
         print("======================\n")

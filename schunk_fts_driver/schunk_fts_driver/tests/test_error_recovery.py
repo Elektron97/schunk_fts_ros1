@@ -88,7 +88,7 @@ def test_driver_continues_after_packet_skip(sensor, lifecycle_interface):
     for msg in messages:
         assert msg.header.stamp.sec >= 0
         assert msg.header.stamp.nanosec >= 0
-        assert msg.header.frame_id == "driver"
+        assert msg.header.frame_id == "fts"
 
     driver.change_state(Transition.TRANSITION_DEACTIVATE)
     driver.change_state(Transition.TRANSITION_CLEANUP)

@@ -28,7 +28,7 @@ Unconfigured -> configure -> Inactive -> activate -> Active
 
 - **Unconfigured**: No sensor connection
 - **Inactive**: Connected via TCP and UDP, Sensor is streaming
-- **Active**: Publishing force-torque data at 1000 Hz
+- **Active**: Publishing force-torque data at the configured sensor output rate
 
 Control via:
 ```bash
@@ -40,7 +40,7 @@ ros2 lifecycle set /schunk/fts configure|activate|deactivate|cleanup
 
 | Topic | Type | Rate | Description |
 |-------|------|------|-------------|
-| `/schunk/fts/data` | `geometry_msgs/WrenchStamped` | 1000 Hz | Force-torque data |
+| `/schunk/fts/data` | `geometry_msgs/WrenchStamped` | Sensor output rate | Force-torque data |
 | `/schunk/fts/state` | `diagnostic_msgs/DiagnosticStatus` | latched - published on change | Sensor status |
 
 ## Services
@@ -70,3 +70,5 @@ Auto-reconnects on power loss (100ms detection, 1s retry).
 ```bash
 ros2 launch schunk_fts_driver driver.launch.py host:=192.168.0.100 port:=82 streaming_port:=54843
 ```
+
+The underlying Python library supports `output_rate_hz` values `1000`, `500`, `250`, `100`, and `8000`. The ROS launch file keeps the default 1000 Hz setting.

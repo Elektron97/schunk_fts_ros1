@@ -35,9 +35,11 @@ def test_driver_offers_getting_parameters(sensor):
     assert response == GetParameterResponse()
 
 
-@pytest.mark.skip()  # Setting parameters requires service or root privileges
 def test_driver_offers_setting_parameters(sensor):
     HOST, PORT = sensor
+    if (HOST, PORT) != ("127.0.0.1", 8082):
+        pytest.skip("Parameter write test runs against the dummy sensor only.")
+
     driver = Driver(host=HOST, port=PORT)
 
     param = "0050"  # switch ft-signal units

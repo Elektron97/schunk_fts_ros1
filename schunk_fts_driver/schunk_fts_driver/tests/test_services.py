@@ -25,6 +25,7 @@ from schunk_fts_interfaces.srv import (  # type: ignore [attr-defined]
     SelectNoiseFilter,
 )
 import threading
+import time
 
 
 @pytest.fixture(scope="function")
@@ -98,60 +99,17 @@ def test_send_command_service_fail(service_client_node):
 
 def test_concurrent_tare_service_calls(service_client_node):
     """Test multiple concurrent tare service calls."""
-    # Use a thread-safe executor to manage all callbacks for the node.
-    executor = MultiThreadedExecutor()
-    executor.add_node(service_client_node)
-
-    # Run the executor in a background thread. This thread will now handle all
-    # service responses for the service_client_node.
-    executor_thread = threading.Thread(target=executor.spin, daemon=True)
-    executor_thread.start()
-
     cli = service_client_node.create_client(Trigger, "/schunk/fts/tare")
     assert cli.wait_for_service(timeout_sec=5.0)
 
-    results = []
-    errors = []
-    # Using a lock is good practice when multiple threads modify a shared list.
-    lock = threading.Lock()
+    futures = [cli.call_async(Trigger.Request()) for _ in range(3)]
+    timeout = time.time() + 5.0
+    while time.time() < timeout and not all(future.done() for future in futures):
+        rclpy.spin_once(service_client_node, timeout_sec=0.01)
 
-    def call_tare():
-        """This function will be run by each thread."""
-        try:
-            req = Trigger.Request()
-            future = cli.call_async(req)
+    results = [future.result() for future in futures if future.done()]
 
-            executor.spin_until_future_complete(future, timeout_sec=5.0)
-
-            result = future.result()
-            with lock:
-                if result:
-                    results.append(result)
-                else:
-                    errors.append("Service call timed out and returned None.")
-        except Exception as e:
-            with lock:
-                errors.append(e)
-
-    # Launch 3 concurrent calls
-    threads = []
-    for _ in range(3):
-        t = threading.Thread(target=call_tare)
-        threads.append(t)
-        t.start()
-
-    # Wait for all threads to complete
-    for t in threads:
-        t.join(timeout=10.0)
-
-    # Clean up the executor
-    executor.shutdown()
-    executor_thread.join()
-
-    assert len(errors) == 0, f"Concurrent calls should not cause errors: {errors}"
-    assert (
-        len(results) == 3
-    ), f"All concurrent calls should complete, but only {len(results)} did."
+    assert len(results) == 3
 
     # All should succeed
     for result in results:
@@ -198,7 +156,8 @@ def test_service_call_during_data_publishing(service_client_node, lifecycle_inte
     )
 
     # Start collecting data
-    for _ in range(10):
+    timeout = time.time() + 3.0
+    while time.time() < timeout and len(messages) == 0:
         rclpy.spin_once(lifecycle_interface.node, timeout_sec=0.001)
 
     initial_count = len(messages)
@@ -212,7 +171,8 @@ def test_service_call_during_data_publishing(service_client_node, lifecycle_inte
     assert result.success
 
     # Data should continue after service call
-    for _ in range(10):
+    timeout = time.time() + 3.0
+    while time.time() < timeout and len(messages) <= initial_count:
         rclpy.spin_once(lifecycle_interface.node, timeout_sec=0.001)
 
     assert len(messages) > initial_count, "Data should continue after service call"

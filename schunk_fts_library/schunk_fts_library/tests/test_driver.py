@@ -20,6 +20,46 @@ import pytest
 import struct
 
 
+@pytest.mark.parametrize(
+    ("output_rate_hz", "expected_enum"),
+    [
+        (1000, "00"),
+        (500, "01"),
+        (250, "02"),
+        (100, "03"),
+        (8000, "0a"),
+    ],
+)
+def test_driver_accepts_supported_output_rates(output_rate_hz, expected_enum):
+    driver = Driver(output_rate_hz=output_rate_hz)
+
+    assert driver.output_rate_hz == output_rate_hz
+    assert driver.output_rate_parameter_value == expected_enum
+
+
+@pytest.mark.parametrize("output_rate_hz", [0, 10, 499, 999, 2000, 16000])
+def test_driver_rejects_unsupported_output_rates(output_rate_hz):
+    with pytest.raises(ValueError, match="Unsupported output_rate_hz"):
+        Driver(output_rate_hz=output_rate_hz)
+
+
+def test_driver_configures_output_rate_parameter(monkeypatch):
+    driver = Driver(output_rate_hz=8000)
+    calls = []
+
+    class Response:
+        error_code = "00"
+
+    def set_parameter(value: str, index: str, subindex: str = "00"):
+        calls.append((value, index, subindex))
+        return Response()
+
+    monkeypatch.setattr(driver, "set_parameter", set_parameter)
+
+    assert driver._configure_output_rate()
+    assert calls == [("0a", "1020", "00")]
+
+
 def test_driver_initializes_as_expected():
 
     # Default initialization
@@ -165,23 +205,29 @@ def test_driver_supports_sampling_force_torque_data(sensor, send_messages):
         time.sleep(0.1)
 
 
-@pytest.mark.skip()
 def test_driver_supports_sampling_at_different_rates(sensor):
     HOST, PORT = sensor
-    driver = Driver()
+    if (HOST, PORT) != ("127.0.0.1", 8082):
+        pytest.skip("Output-rate switching test runs against the dummy sensor only.")
 
-    # Test streaming at different rates
-    assert driver.streaming_on()
-    rates = [10, 100, 1000, 8000]
-    duration_sec = 1.0
+    for rate in [1000, 500, 250, 100, 8000]:
+        driver = Driver(host=HOST, port=PORT, output_rate_hz=rate)
+        try:
+            assert driver.streaming_on(timeout_sec=1.0)
+            deadline = time.time() + 1.0
+            sample = None
+            while time.time() < deadline:
+                sample = driver.sample()
+                if sample is None:
+                    continue
+                if rate != 8000 or sample.get("samples_per_packet") == 16:
+                    break
 
-    for rate in rates:
-        start = time.time()
-        previous_value = None
-        count = 0
-        while time.time() < start + duration_sec:
-            sample = driver.sample()
-            count += 1
-            assert sample != previous_value, f"rate: {rate}, count: {count}"
-            previous_value = sample
-            time.sleep(1.0 / rate)
+            assert sample is not None, f"No sample received at {rate} Hz"
+            if rate == 8000:
+                assert sample["samples_per_packet"] == 16
+            else:
+                assert sample.get("samples_per_packet", 1) == 1
+        finally:
+            driver.streaming_off()
+            time.sleep(0.1)
