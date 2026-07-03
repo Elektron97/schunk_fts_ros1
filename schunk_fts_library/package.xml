@@ -7,6 +7,8 @@
   <maintainer email="fabian.reinwald@de.schunk.com">Fabian Reinwald</maintainer>
   <license>GPL-3.0-or-later</license>
 
+  <test_depend>python3-pytest</test_depend>
+
   <export>
     <build_type>ament_python</build_type>
   </export>
