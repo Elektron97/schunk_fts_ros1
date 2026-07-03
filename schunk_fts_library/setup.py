@@ -1,28 +1,8 @@
 import os
-import subprocess
-import sys
 from glob import glob
-from setuptools import Command, find_packages, setup
+from setuptools import find_packages, setup
 
 package_name = "schunk_fts_library"
-
-
-class PyTestCommand(Command):
-    description = "run pytest"
-    user_options = []
-
-    def initialize_options(self):
-        pass
-
-    def finalize_options(self):
-        pass
-
-    def run(self):
-        test_path = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)), package_name, "tests"
-        )
-        errno = subprocess.call([sys.executable, "-m", "pytest", test_path])
-        raise SystemExit(errno)
 
 
 setup(
@@ -47,7 +27,6 @@ setup(
     description="Low-level driver library for SCHUNK's force-torque sensors",
     license="GPL-3.0-or-later",
     tests_require=["pytest", "coverage"],
-    cmdclass={"test": PyTestCommand},
     entry_points={
         "console_scripts": [],
     },

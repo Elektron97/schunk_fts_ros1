@@ -1,28 +1,8 @@
 from glob import glob
 import os
-import subprocess
-import sys
-from setuptools import Command, find_packages, setup
+from setuptools import find_packages, setup
 
 package_name = "schunk_fts_driver"
-
-
-class PyTestCommand(Command):
-    description = "run pytest"
-    user_options = []
-
-    def initialize_options(self):
-        pass
-
-    def finalize_options(self):
-        pass
-
-    def run(self):
-        test_path = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)), package_name, "tests"
-        )
-        errno = subprocess.call([sys.executable, "-m", "pytest", test_path])
-        raise SystemExit(errno)
 
 
 setup(
@@ -64,7 +44,6 @@ setup(
     description="ROS2 driver for SCHUNK's force-torque sensors",
     license="GPL-3.0-or-later",
     tests_require=["pytest"],
-    cmdclass={"test": PyTestCommand},
     entry_points={
         "console_scripts": [],
     },
