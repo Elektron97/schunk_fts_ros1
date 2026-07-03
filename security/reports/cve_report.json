@@ -1,162 +1,162 @@
 {
-  "timestamp": "2026-06-30T14:57:36Z",
+  "timestamp": "2026-07-03T12:45:04Z",
   "repository": "SCHUNK-SE-Co-KG/schunk_force_torque_sensor",
   "dependencies_scanned": 71,
-  "vulnerabilities_found": 1,
+  "vulnerabilities_found": 0,
   "high_severity_count": 0,
   "dependencies": [
-    {
-      "name": "black",
-      "version": "26.5.1",
-      "ecosystem": "PyPI",
-      "source": "build/schunk_fts_driver/setup.py",
-      "upstream_repo": ""
-    },
-    {
-      "name": "certifi",
-      "version": "2026.6.17",
-      "ecosystem": "PyPI",
-      "source": "build/schunk_fts_driver/setup.py",
-      "upstream_repo": ""
-    },
-    {
-      "name": "charset-normalizer",
-      "version": "3.4.7",
-      "ecosystem": "PyPI",
-      "source": "build/schunk_fts_driver/setup.py",
-      "upstream_repo": ""
-    },
-    {
-      "name": "click",
-      "version": "8.4.2",
-      "ecosystem": "PyPI",
-      "source": "build/schunk_fts_driver/setup.py",
-      "upstream_repo": ""
-    },
-    {
-      "name": "exceptiongroup",
-      "version": "1.3.1",
-      "ecosystem": "PyPI",
-      "source": "build/schunk_fts_driver/setup.py",
-      "upstream_repo": ""
-    },
-    {
-      "name": "idna",
-      "version": "3.18",
-      "ecosystem": "PyPI",
-      "source": "build/schunk_fts_driver/setup.py",
-      "upstream_repo": ""
-    },
-    {
-      "name": "iniconfig",
-      "version": "2.3.0",
-      "ecosystem": "PyPI",
-      "source": "build/schunk_fts_driver/setup.py",
-      "upstream_repo": ""
-    },
-    {
-      "name": "lark",
-      "version": "1.3.1",
-      "ecosystem": "PyPI",
-      "source": "build/schunk_fts_driver/setup.py",
-      "upstream_repo": ""
-    },
-    {
-      "name": "mypy_extensions",
-      "version": "1.1.0",
-      "ecosystem": "PyPI",
-      "source": "build/schunk_fts_driver/setup.py",
-      "upstream_repo": ""
-    },
-    {
-      "name": "numpy",
-      "version": "2.2.6",
-      "ecosystem": "PyPI",
-      "source": "build/schunk_fts_driver/setup.py",
-      "upstream_repo": ""
-    },
-    {
-      "name": "packaging",
-      "version": "26.2",
-      "ecosystem": "PyPI",
-      "source": "build/schunk_fts_driver/setup.py",
-      "upstream_repo": ""
-    },
-    {
-      "name": "pathspec",
-      "version": "1.1.1",
-      "ecosystem": "PyPI",
-      "source": "build/schunk_fts_driver/setup.py",
-      "upstream_repo": ""
-    },
-    {
-      "name": "platformdirs",
-      "version": "4.10.0",
-      "ecosystem": "PyPI",
-      "source": "build/schunk_fts_driver/setup.py",
-      "upstream_repo": ""
-    },
-    {
-      "name": "pluggy",
-      "version": "1.6.0",
-      "ecosystem": "PyPI",
-      "source": "build/schunk_fts_driver/setup.py",
-      "upstream_repo": ""
-    },
-    {
-      "name": "pytest",
-      "version": "8.4.2",
-      "ecosystem": "PyPI",
-      "source": "build/schunk_fts_driver/setup.py",
-      "upstream_repo": ""
-    },
-    {
-      "name": "pytest-repeat",
-      "version": "0.9.4",
-      "ecosystem": "PyPI",
-      "source": "build/schunk_fts_driver/setup.py",
-      "upstream_repo": ""
-    },
-    {
-      "name": "PyYAML",
-      "version": "6.0.3",
-      "ecosystem": "PyPI",
-      "source": "build/schunk_fts_driver/setup.py",
-      "upstream_repo": ""
-    },
     {
       "name": "requests",
       "version": "2.34.2",
       "ecosystem": "PyPI",
-      "source": "build/schunk_fts_driver/setup.py",
-      "upstream_repo": ""
-    },
-    {
-      "name": "tomli",
-      "version": "2.4.1",
-      "ecosystem": "PyPI",
-      "source": "build/schunk_fts_driver/setup.py",
-      "upstream_repo": ""
-    },
-    {
-      "name": "typing_extensions",
-      "version": "4.15.0",
-      "ecosystem": "PyPI",
-      "source": "build/schunk_fts_driver/setup.py",
-      "upstream_repo": ""
-    },
-    {
-      "name": "urllib3",
-      "version": "2.7.0",
-      "ecosystem": "PyPI",
-      "source": "build/schunk_fts_driver/setup.py",
+      "source": "schunk_fts_library/setup.py",
       "upstream_repo": ""
     },
     {
       "name": "psutil",
       "version": "7.2.2",
       "ecosystem": "PyPI",
-      "source": "build/schunk_fts_library/setup.py",
+      "source": "schunk_fts_library/setup.py",
+      "upstream_repo": ""
+    },
+    {
+      "name": "black",
+      "version": "26.5.1",
+      "ecosystem": "PyPI",
+      "source": "schunk_fts_driver/setup.py",
+      "upstream_repo": ""
+    },
+    {
+      "name": "certifi",
+      "version": "2026.6.17",
+      "ecosystem": "PyPI",
+      "source": "schunk_fts_driver/setup.py",
+      "upstream_repo": ""
+    },
+    {
+      "name": "charset-normalizer",
+      "version": "3.4.7",
+      "ecosystem": "PyPI",
+      "source": "schunk_fts_driver/setup.py",
+      "upstream_repo": ""
+    },
+    {
+      "name": "click",
+      "version": "8.4.2",
+      "ecosystem": "PyPI",
+      "source": "schunk_fts_driver/setup.py",
+      "upstream_repo": ""
+    },
+    {
+      "name": "exceptiongroup",
+      "version": "1.3.1",
+      "ecosystem": "PyPI",
+      "source": "schunk_fts_driver/setup.py",
+      "upstream_repo": ""
+    },
+    {
+      "name": "idna",
+      "version": "3.18",
+      "ecosystem": "PyPI",
+      "source": "schunk_fts_driver/setup.py",
+      "upstream_repo": ""
+    },
+    {
+      "name": "iniconfig",
+      "version": "2.3.0",
+      "ecosystem": "PyPI",
+      "source": "schunk_fts_driver/setup.py",
+      "upstream_repo": ""
+    },
+    {
+      "name": "lark",
+      "version": "1.3.1",
+      "ecosystem": "PyPI",
+      "source": "schunk_fts_driver/setup.py",
+      "upstream_repo": ""
+    },
+    {
+      "name": "mypy_extensions",
+      "version": "1.1.0",
+      "ecosystem": "PyPI",
+      "source": "schunk_fts_driver/setup.py",
+      "upstream_repo": ""
+    },
+    {
+      "name": "numpy",
+      "version": "2.2.6",
+      "ecosystem": "PyPI",
+      "source": "schunk_fts_driver/setup.py",
+      "upstream_repo": ""
+    },
+    {
+      "name": "packaging",
+      "version": "26.2",
+      "ecosystem": "PyPI",
+      "source": "schunk_fts_driver/setup.py",
+      "upstream_repo": ""
+    },
+    {
+      "name": "pathspec",
+      "version": "1.1.1",
+      "ecosystem": "PyPI",
+      "source": "schunk_fts_driver/setup.py",
+      "upstream_repo": ""
+    },
+    {
+      "name": "platformdirs",
+      "version": "4.10.0",
+      "ecosystem": "PyPI",
+      "source": "schunk_fts_driver/setup.py",
+      "upstream_repo": ""
+    },
+    {
+      "name": "pluggy",
+      "version": "1.6.0",
+      "ecosystem": "PyPI",
+      "source": "schunk_fts_driver/setup.py",
+      "upstream_repo": ""
+    },
+    {
+      "name": "pytest",
+      "version": "9.1.1",
+      "ecosystem": "PyPI",
+      "source": "schunk_fts_driver/setup.py",
+      "upstream_repo": ""
+    },
+    {
+      "name": "pytest-repeat",
+      "version": "0.9.4",
+      "ecosystem": "PyPI",
+      "source": "schunk_fts_driver/setup.py",
+      "upstream_repo": ""
+    },
+    {
+      "name": "PyYAML",
+      "version": "6.0.3",
+      "ecosystem": "PyPI",
+      "source": "schunk_fts_driver/setup.py",
+      "upstream_repo": ""
+    },
+    {
+      "name": "tomli",
+      "version": "2.4.1",
+      "ecosystem": "PyPI",
+      "source": "schunk_fts_driver/setup.py",
+      "upstream_repo": ""
+    },
+    {
+      "name": "typing_extensions",
+      "version": "4.15.0",
+      "ecosystem": "PyPI",
+      "source": "schunk_fts_driver/setup.py",
+      "upstream_repo": ""
+    },
+    {
+      "name": "urllib3",
+      "version": "2.7.0",
+      "ecosystem": "PyPI",
+      "source": "schunk_fts_driver/setup.py",
       "upstream_repo": ""
     },
     {
@@ -450,78 +450,58 @@
       "name": "rclpy",
       "version": "",
       "ecosystem": "ROS",
-      "source": "build/schunk_fts_driver/package.xml",
+      "source": "schunk_fts_driver/package.xml",
       "upstream_repo": "ros2/rclpy"
     },
     {
       "name": "launch",
       "version": "",
       "ecosystem": "ROS",
-      "source": "build/schunk_fts_driver/package.xml",
+      "source": "schunk_fts_driver/package.xml",
       "upstream_repo": "ros2/launch"
     },
     {
       "name": "launch_ros",
       "version": "",
       "ecosystem": "ROS",
-      "source": "build/schunk_fts_driver/package.xml",
+      "source": "schunk_fts_driver/package.xml",
       "upstream_repo": "ros2/launch_ros"
     },
     {
       "name": "geometry_msgs",
       "version": "",
       "ecosystem": "ROS",
-      "source": "build/schunk_fts_driver/package.xml",
+      "source": "schunk_fts_driver/package.xml",
       "upstream_repo": "ros2/common_interfaces"
     },
     {
       "name": "std_srvs",
       "version": "",
       "ecosystem": "ROS",
-      "source": "build/schunk_fts_driver/package.xml",
+      "source": "schunk_fts_driver/package.xml",
       "upstream_repo": "ros2/common_interfaces"
     },
     {
       "name": "sensor_msgs",
       "version": "",
       "ecosystem": "ROS",
-      "source": "build/schunk_fts_driver/package.xml",
+      "source": "schunk_fts_driver/package.xml",
       "upstream_repo": "ros2/common_interfaces"
     },
     {
       "name": "diagnostic_msgs",
       "version": "",
       "ecosystem": "ROS",
-      "source": "build/schunk_fts_driver/package.xml",
+      "source": "schunk_fts_driver/package.xml",
       "upstream_repo": "ros2/common_interfaces"
     },
     {
       "name": "example_interfaces",
       "version": "",
       "ecosystem": "ROS",
-      "source": "build/schunk_fts_driver/package.xml",
+      "source": "schunk_fts_driver/package.xml",
       "upstream_repo": "ros2/example_interfaces"
     }
   ],
-  "vulnerabilities": [
-    {
-      "vuln_id": "GHSA-6w46-j5rx-g56g",
-      "summary": "pytest has vulnerable tmpdir handling",
-      "severity": "CVSS:3.1/AV:L/AC:L/PR:N/UI:N/S:C/C:L/I:L/A:L",
-      "cvss_score": 6.8,
-      "affected_package": "PyPI:pytest@8.4.2",
-      "affected_versions": "2.0.0, 2.0.1, 2.0.2, 2.0.3, 2.1.0, 2.1.1, 2.1.2, 2.1.3, 2.2.0, 2.2.1 …",
-      "fixed_version": "9.0.3",
-      "references": [
-        "https://nvd.nist.gov/vuln/detail/CVE-2025-71176",
-        "https://github.com/pytest-dev/pytest/issues/13669",
-        "https://github.com/pytest-dev/pytest/pull/14343",
-        "https://github.com/pytest-dev/pytest/commit/95d8423bd24992deea5b9df32555fa1741679e2c",
-        "https://github.com/pytest-dev/pytes"
-      ],
-      "aliases": [
-        "CVE-2025-71176"
-      ]
-    }
-  ]
+  "vulnerabilities": []
 }
