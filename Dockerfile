@@ -50,6 +50,9 @@ RUN python3 -m pip install --no-cache-dir packaging==26.2
 RUN pip install -e /schunk_force_torque_sensor/src/schunk_fts_library &&\
     pip install -e /schunk_force_torque_sensor/src/schunk_fts_driver
 
+RUN python3 -m pip install --no-cache-dir --force-reinstall pytest==8.4.2 && \
+    python3 -m pytest --version
+
 # Build ROS workspace
 RUN /bin/bash -c "source /opt/ros/humble/setup.bash && colcon build"
 
