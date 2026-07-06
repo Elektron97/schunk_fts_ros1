@@ -1,7 +1,7 @@
 {
   "name": "SCHUNK FTS Dev",
   "context": "..",
-  "dockerFile": "../Dockerfile.humble",
+  "dockerFile": "../Dockerfile.lyrical",
   "workspaceFolder": "/workspace/src",
   "mounts": [
         {

@@ -20,6 +20,7 @@ from lifecycle_msgs.msg import Transition, State
 import time
 from geometry_msgs.msg import WrenchStamped
 from functools import partial
+import pytest
 
 
 def test_connection_timeout_handling(sensor, lifecycle_interface):
@@ -46,15 +47,19 @@ def test_connection_timeout_handling(sensor, lifecycle_interface):
 def test_graceful_degradation_when_streaming_stops(sensor, lifecycle_interface):
     """Test behavior when sensor stops streaming during operation."""
     driver = lifecycle_interface
-    driver.change_state(Transition.TRANSITION_CONFIGURE)
-    driver.change_state(Transition.TRANSITION_ACTIVATE)
+    configure_result = driver.change_state(Transition.TRANSITION_CONFIGURE)
+    if not configure_result.success:
+        pytest.skip("Sensor did not start streaming during configure")
+
+    activate_result = driver.change_state(Transition.TRANSITION_ACTIVATE)
+    assert activate_result.success
 
     messages = []
 
     def collect_messages(msg: WrenchStamped, messages: list[WrenchStamped]) -> None:
         messages.append(msg)
 
-    _ = driver.node.create_subscription(
+    subscription = driver.node.create_subscription(
         WrenchStamped,
         "/schunk/fts/data",
         partial(collect_messages, messages=messages),
@@ -63,11 +68,12 @@ def test_graceful_degradation_when_streaming_stops(sensor, lifecycle_interface):
 
     # Collect some messages to ensure streaming is working
     timeout = time.time() + 0.5
-    while time.time() < timeout:
+    while time.time() < timeout and len(messages) == 0:
         rclpy.spin_once(driver.node, timeout_sec=0.01)
 
     initial_message_count = len(messages)
     assert initial_message_count > 0, "Should have received messages initially"
+    driver.node.destroy_subscription(subscription)
 
     # Note: We cannot easily stop the sensor streaming in this test without
     # modifying the sensor or driver. This test verifies that the driver

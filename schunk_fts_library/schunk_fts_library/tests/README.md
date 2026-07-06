@@ -49,7 +49,7 @@ The tests may also configure the UDP output-rate parameter before streaming.
 Set the real sensor endpoint explicitly in every terminal that runs tests:
 
 ```bash
-export FTS_HOST="10.49.60.117"
+export FTS_HOST="<IP_ADDRESS>"
 export FTS_PORT=82
 ```
 

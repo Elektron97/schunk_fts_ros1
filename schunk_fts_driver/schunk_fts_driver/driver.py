@@ -280,7 +280,7 @@ class Driver(Node):
             # Check if connection was lost (data is None for extended period)
             if data is None:
                 if not self._connection_lost and self._is_sensor_ok:
-                    self.get_logger().warn(
+                    self.get_logger().warning(
                         "Connection lost - waiting for sensor to reconnect..."
                     )
                     self._connection_lost = True
@@ -320,7 +320,7 @@ class Driver(Node):
             if is_new_udp_packet:
                 packets_skipped = self._packet_gap(self._last_counter, counter)
                 if packets_skipped > 0:
-                    self.get_logger().warn(
+                    self.get_logger().warning(
                         f"Loop is too slow! "
                         f"Skipped {packets_skipped} packets. "
                         f"(Last: {self._last_counter}, New: {counter})"
