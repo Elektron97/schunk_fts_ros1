@@ -8,6 +8,7 @@ ROS2 lifecycle node for SCHUNK force-torque sensors. Wraps `schunk_fts_library` 
 # Launch driver
 ros2 launch schunk_fts_driver driver.launch.py  # Default: 192.168.0.100
 ros2 launch schunk_fts_driver driver.launch.py host:=192.168.1.50  # Custom IP (set via SCHUNK Control Center)
+ros2 launch schunk_fts_driver driver.launch.py host:=192.168.1.50 output_rate_hz:=500
 
 # Activate
 ros2 lifecycle set /schunk/fts configure
@@ -68,7 +69,7 @@ Auto-reconnects on power loss (100ms detection, 1s retry).
 ## Configuration
 
 ```bash
-ros2 launch schunk_fts_driver driver.launch.py host:=192.168.0.100 port:=82 streaming_port:=54843
+ros2 launch schunk_fts_driver driver.launch.py host:=192.168.0.100 port:=82 streaming_port:=54843 output_rate_hz:=1000
 ```
 
-The underlying Python library supports `output_rate_hz` values `1000`, `500`, `250`, `100`, and `8000`. The ROS launch file keeps the default 1000 Hz setting.
+Supported `output_rate_hz` values are `1000`, `500`, `250`, `100`, and `8000`. The default is `1000` Hz.

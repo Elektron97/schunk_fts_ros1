@@ -24,6 +24,7 @@ DRIVER_PARAMETERS = [
     "host",
     "port",
     "streaming_port",
+    "output_rate_hz",
 ]
 
 
@@ -67,6 +68,12 @@ def test_driver_has_expected_parameters_after_startup(driver, sensor):
                 type=ParameterType.PARAMETER_INTEGER, integer_value=54843
             ),
         ),
+        Parameter(
+            name="output_rate_hz",
+            value=ParameterValue(
+                type=ParameterType.PARAMETER_INTEGER, integer_value=1000
+            ),
+        ),
     ]
     future = get_params_client.call_async(
         GetParameters.Request(names=DRIVER_PARAMETERS)
@@ -102,6 +109,12 @@ def test_driver_supports_setting_parameters(driver):
             name="streaming_port",
             value=ParameterValue(
                 type=ParameterType.PARAMETER_INTEGER, integer_value=12345
+            ),
+        ),
+        Parameter(
+            name="output_rate_hz",
+            value=ParameterValue(
+                type=ParameterType.PARAMETER_INTEGER, integer_value=500
             ),
         ),
     ]
@@ -305,6 +318,8 @@ def test_parameter_type_consistency(driver):
     assert result.values[1].type == ParameterType.PARAMETER_INTEGER
     # streaming_port should be INTEGER
     assert result.values[2].type == ParameterType.PARAMETER_INTEGER
+    # output_rate_hz should be INTEGER
+    assert result.values[3].type == ParameterType.PARAMETER_INTEGER
 
     node.destroy_node()
 

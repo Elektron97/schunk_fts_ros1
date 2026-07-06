@@ -54,12 +54,16 @@ def test_driver_uses_library_for_sensor_communication(sensor, ros2):
         parameter_overrides=[
             rclpy.parameter.Parameter("host", rclpy.Parameter.Type.STRING, host),
             rclpy.parameter.Parameter("port", rclpy.Parameter.Type.INTEGER, port),
+            rclpy.parameter.Parameter(
+                "output_rate_hz", rclpy.Parameter.Type.INTEGER, 500
+            ),
         ],
     )
     try:
         assert driver.sensor is not None
         assert driver.get_parameter("host").value == host
         assert driver.get_parameter("port").value == port
+        assert driver.sensor.output_rate_hz == 500
     finally:
         if driver.sensor.is_streaming:
             driver.sensor.streaming_off()

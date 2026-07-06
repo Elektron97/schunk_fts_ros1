@@ -86,11 +86,13 @@ class Driver(Node):
         self.declare_parameter("host", "192.168.0.100")
         self.declare_parameter("port", 82)
         self.declare_parameter("streaming_port", 54843)
+        self.declare_parameter("output_rate_hz", 1000)
 
         self.sensor: SensorDriver = SensorDriver(
             host=self.get_parameter("host").value,
             port=self.get_parameter("port").value,
             streaming_port=self.get_parameter("streaming_port").value,
+            output_rate_hz=self.get_parameter("output_rate_hz").value,
         )
         self.ft_data_publisher: Publisher | None = None
         self.ft_state_publisher: Publisher | None = None

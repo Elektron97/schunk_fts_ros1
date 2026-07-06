@@ -34,13 +34,18 @@ streaming_port = DeclareLaunchArgument(
     default_value="54843",
     description="The sensor's UDP/IP streaming port",
 )
+output_rate_hz = DeclareLaunchArgument(
+    "output_rate_hz",
+    default_value="1000",
+    description="The sensor's output rate in Hz: 100, 250, 500, 1000, or 8000",
+)
 namespace = DeclareLaunchArgument(
     "namespace",
     default_value="schunk",
     description="The node's namespace",
 )
 
-args = [host, port, streaming_port, namespace]
+args = [host, port, streaming_port, output_rate_hz, namespace]
 
 
 def generate_launch_description():
@@ -56,6 +61,7 @@ def generate_launch_description():
                     {"host": LaunchConfiguration("host")},
                     {"port": LaunchConfiguration("port")},
                     {"streaming_port": LaunchConfiguration("streaming_port")},
+                    {"output_rate_hz": LaunchConfiguration("output_rate_hz")},
                 ],
                 respawn=False,
                 output="both",
