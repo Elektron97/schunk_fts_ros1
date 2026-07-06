@@ -39,15 +39,27 @@ class FTData(TypedDict, total=False):
     samples_per_packet: int
 
 
+FTSample = tuple[int, int, int, int, int, float, float, float, float, float, float]
+
+
 class FTDataBuffer(object):
-    def __init__(self, maxsize=100) -> None:
+    def __init__(self, maxsize=1000) -> None:
         self._queue: Queue[FTData] = Queue(maxsize=maxsize)
         self._pending_samples: deque[FTData] = deque()
         self._last_packet_time = time.monotonic()
         self._no_data_warning_printed = False
+        self.dropped_packet_count = 0
 
     def __len__(self):
         return self._queue.qsize() + len(self._pending_samples)
+
+    def clear(self) -> None:
+        with self._queue.mutex:
+            self._queue.queue.clear()
+            self._queue.unfinished_tasks = 0
+            self._queue.all_tasks_done.notify_all()
+        self._pending_samples.clear()
+        self._last_packet_time = time.monotonic()
 
     def put(self, packet: bytearray) -> None:
         try:
@@ -56,7 +68,7 @@ class FTDataBuffer(object):
                 False  # Reset warning flag when data resumes
             )
         except Full:
-            pass
+            self.dropped_packet_count += 1
 
     def get(self) -> FTData | None:
         if self._pending_samples:
@@ -89,6 +101,19 @@ class FTDataBuffer(object):
                     ty=0.0,
                     tz=0.0,
                 )
+            return None
+
+    def get_sample_batch(self) -> list[FTSample] | None:
+        try:
+            packet = self._queue.get(timeout=0.1)
+            self._last_packet_time = time.monotonic()
+            return self.decode_sample_batch(packet)
+        except Empty:
+            if time.monotonic() - self._last_packet_time > 1.0:
+                if not self._no_data_warning_printed:
+                    print("FTDataBuffer: No data received anymore")
+                    self._no_data_warning_printed = True
+                return [(0, 0, 0, 1, 0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)]
             return None
 
     @staticmethod
@@ -161,14 +186,85 @@ class FTDataBuffer(object):
             )
         ]
 
+    @staticmethod
+    def decode_sample_batch(data: bytearray) -> list[FTSample]:
+        counter, payload_len = struct.unpack("<HH", data[2:6])
+
+        if payload_len == 449:
+            packet_id = data[6]
+            samples = []
+            sample_size = 28
+            offset = 7
+            for sample_index in range(16):
+                status_bits, fx, fy, fz, tx, ty, tz = struct.unpack_from(
+                    "<I ffffff", data, offset
+                )
+                samples.append(
+                    (
+                        counter,
+                        packet_id,
+                        sample_index,
+                        16,
+                        status_bits,
+                        fx,
+                        fy,
+                        fz,
+                        tx,
+                        ty,
+                        tz,
+                    )
+                )
+                offset += sample_size
+            return samples
+
+        if payload_len == 29:
+            packet_id, status_bits, fx, fy, fz, tx, ty, tz = struct.unpack(
+                "<B I ffffff", data[6:]
+            )
+            return [(counter, packet_id, 0, 1, status_bits, fx, fy, fz, tx, ty, tz)]
+
+        values = struct.unpack("<HHB I ffffff", data[2:])
+        return [
+            (
+                values[0],
+                values[2],
+                0,
+                1,
+                values[3],
+                values[4],
+                values[5],
+                values[6],
+                values[7],
+                values[8],
+                values[9],
+            )
+        ]
+
 
 class Stream(object):
-    def __init__(self, port: int) -> None:
+    def __init__(self, port: int, source_host: str | None = None) -> None:
         self.port: int = port
+        self.source_host: str | None = source_host
+        self.source_ip: str | None = self._resolve_source_ip(source_host)
+        self.accepted_packet_count: int = 0
+        self.ignored_packet_count: int = 0
+        self.source_addresses: set[str] = set()
         self._lock: RLock = RLock()
         self._is_open: bool = False
         self._open_count: int = 0
         self._reset_socket()
+
+    @staticmethod
+    def _resolve_source_ip(source_host: str | None) -> str | None:
+        if source_host is None:
+            return None
+        try:
+            return socket.gethostbyname(source_host)
+        except OSError:
+            return source_host
+
+    def _accepts_source(self, address: tuple[str, int]) -> bool:
+        return self.source_ip is None or address[0] == self.source_ip
 
     def is_open(self) -> bool:
         with self._lock:
@@ -179,8 +275,13 @@ class Stream(object):
         if self.is_open():
             while True:
                 try:
-                    data, _ = self.socket.recvfrom(8192)
-                    packets.append(data)
+                    data, address = self.socket.recvfrom(8192)
+                    self.source_addresses.add(address[0])
+                    if self._accepts_source(address):
+                        packets.append(data)
+                        self.accepted_packet_count += 1
+                    else:
+                        self.ignored_packet_count += 1
                 except BlockingIOError:
                     break
                 except Exception:
@@ -216,6 +317,10 @@ class Stream(object):
     def _reset_socket(self) -> None:
         self.socket: Socket = Socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        try:
+            self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 4 * 1024 * 1024)
+        except OSError:
+            pass
         self.socket.setblocking(False)
 
 

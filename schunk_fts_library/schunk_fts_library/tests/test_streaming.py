@@ -17,6 +17,9 @@ from schunk_fts_library.utility import Stream
 import time
 from threading import Thread
 import struct
+import pytest
+from socket import socket as Socket
+import socket
 
 
 def test_stream_has_expected_fields(unused_udp_port):
@@ -112,6 +115,29 @@ def test_stream_supports_reading_data(send_messages, unused_udp_port):
         # Verify raw bytes match what was sent
         assert isinstance(result, list)
         assert result == [msg]
+
+
+def test_stream_filters_packets_by_source_host(unused_udp_port):
+    accepted_msg = b"accepted"
+    ignored_msg = b"ignored"
+
+    def send_from(source_host: str, msg: bytes) -> None:
+        try:
+            with Socket(socket.AF_INET, socket.SOCK_DGRAM) as sender:
+                sender.bind((source_host, 0))
+                sender.sendto(msg, ("127.0.0.1", unused_udp_port))
+        except OSError as e:
+            pytest.skip(f"Cannot bind UDP sender to {source_host}: {e}")
+
+    with Stream(port=unused_udp_port, source_host="127.0.0.1") as stream:
+        send_from("127.0.0.2", ignored_msg)
+        send_from("127.0.0.1", accepted_msg)
+        time.sleep(0.1)
+
+        assert stream.read() == [accepted_msg]
+        assert stream.accepted_packet_count == 1
+        assert stream.ignored_packet_count == 1
+        assert stream.source_addresses == {"127.0.0.1", "127.0.0.2"}
 
 
 def test_stream_returns_immediately_without_data(unused_udp_port):

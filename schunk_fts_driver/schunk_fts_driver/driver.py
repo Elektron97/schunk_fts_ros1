@@ -88,11 +88,12 @@ class Driver(Node):
         self.declare_parameter("streaming_port", 54843)
         self.declare_parameter("output_rate_hz", 1000)
 
+        output_rate_hz = int(self.get_parameter("output_rate_hz").value)
         self.sensor: SensorDriver = SensorDriver(
             host=self.get_parameter("host").value,
             port=self.get_parameter("port").value,
             streaming_port=self.get_parameter("streaming_port").value,
-            output_rate_hz=self.get_parameter("output_rate_hz").value,
+            output_rate_hz=output_rate_hz,
         )
         self.ft_data_publisher: Publisher | None = None
         self.ft_state_publisher: Publisher | None = None
@@ -115,6 +116,7 @@ class Driver(Node):
         self._base_counter: int = -1
         self._is_sensor_ok: bool = False
         self._connection_lost: bool = False
+        self._last_skip_warning_time: float = 0.0
 
     @staticmethod
     def _packet_gap(previous_counter: int, counter: int) -> int:
@@ -125,6 +127,20 @@ class Driver(Node):
     @staticmethod
     def _sample_period_ns_for_rate(output_rate_hz: int) -> int:
         return round(1_000_000_000 / output_rate_hz)
+
+    @staticmethod
+    def _status_level_from_bits(bits: int) -> bytes:
+        if bits & (1 << 3):
+            return DiagnosticStatus.ERROR
+        if (
+            bits & (1 << 1)
+            or bits & (1 << 2)
+            or bits & (1 << 4)
+            or bits & (1 << 5)
+            or not bits & (1 << 0)
+        ):
+            return DiagnosticStatus.WARN
+        return DiagnosticStatus.OK
 
     @classmethod
     def _calculate_sample_timestamp_ns(
@@ -161,10 +177,16 @@ class Driver(Node):
         self.get_logger().debug("on_activate() is called.")
         garbage_collector.disable()
 
+        sensor_data_qos = QoSProfile(
+            history=HistoryPolicy.KEEP_LAST,
+            depth=64,
+            reliability=ReliabilityPolicy.BEST_EFFORT,
+            durability=DurabilityPolicy.VOLATILE,
+        )
         self.ft_data_publisher = self.create_publisher(
             msg_type=WrenchStamped,
             topic="~/data",
-            qos_profile=1,
+            qos_profile=sensor_data_qos,
             callback_group=self.data_callback_group,
         )
 
@@ -220,6 +242,10 @@ class Driver(Node):
         )
 
         self.stop_event.clear()
+        self.sensor.clear_samples()
+        self._base_stamp_ros = None
+        self._last_counter = -1
+        self._base_counter = -1
         self.thread = Thread(target=self._publish_data)
         self.thread.start()
         return super().on_activate(state)
@@ -275,12 +301,13 @@ class Driver(Node):
         data_msg.header.frame_id = self.get_name()
         state_msg.name = self.sensor.name
         state_msg.hardware_id = self.sensor.hardware_id
+        sample_period_ns = self._sample_period_ns_for_rate(self.sensor.output_rate_hz)
 
         while rclpy.ok() and not self.stop_event.is_set():
-            data = self.sensor.sample()
+            samples = self.sensor.sample_batch()
 
             # Check if connection was lost (data is None for extended period)
-            if data is None:
+            if samples is None:
                 if not self._connection_lost and self._is_sensor_ok:
                     self.get_logger().warning(
                         "Connection lost - waiting for sensor to reconnect..."
@@ -314,7 +341,13 @@ class Driver(Node):
                         self.ft_state_publisher.publish(state_msg)
                         self._last_state_level = DiagnosticStatus.OK
 
-            counter = data["counter"]  # type: ignore
+            data_publisher = self.ft_data_publisher
+            state_publisher = self.ft_state_publisher
+
+            first_sample = samples[0]
+            counter = first_sample[0]
+            samples_per_packet = first_sample[3]
+            status_bits = first_sample[4]
             is_new_udp_packet = (
                 self._last_counter == -1 or counter != self._last_counter
             )
@@ -322,55 +355,57 @@ class Driver(Node):
             if is_new_udp_packet:
                 packets_skipped = self._packet_gap(self._last_counter, counter)
                 if packets_skipped > 0:
-                    self.get_logger().warning(
-                        f"Loop is too slow! "
-                        f"Skipped {packets_skipped} packets. "
-                        f"(Last: {self._last_counter}, New: {counter})"
-                    )
-
-            level, message = self._get_status_level(data)
-            self._is_sensor_ok = level == DiagnosticStatus.OK
-            if self._is_sensor_ok:
-                if self._base_stamp_ros is None:
-                    self._base_stamp_ros = self.get_clock().now()
-                    self._base_stamp_ns = (
-                        self._base_stamp_ros.nanoseconds  # type: ignore
-                    )
-                    sample_index = int(data.get("sample_index", 0))
-                    self._base_stamp_ns -= (
-                        sample_index
-                        * self._sample_period_ns_for_rate(self.sensor.output_rate_hz)
-                    )
-                    self._base_counter = counter
-
-                current_stamp_ns = self._calculate_sample_timestamp_ns(
-                    data=data,
-                    base_counter=self._base_counter,
-                    base_stamp_ns=self._base_stamp_ns,
-                    output_rate_hz=self.sensor.output_rate_hz,
-                )
-
-                data_msg.header.stamp.sec = current_stamp_ns // 1_000_000_000
-                data_msg.header.stamp.nanosec = current_stamp_ns % 1_000_000_000
-                data_msg.wrench.force.x = data["fx"]  # type: ignore
-                data_msg.wrench.force.y = data["fy"]  # type: ignore
-                data_msg.wrench.force.z = data["fz"]  # type: ignore
-                data_msg.wrench.torque.x = data["tx"]  # type: ignore
-                data_msg.wrench.torque.y = data["ty"]  # type: ignore
-                data_msg.wrench.torque.z = data["tz"]  # type: ignore
-
-            if is_new_udp_packet:
+                    now = time.monotonic()
+                    if now - self._last_skip_warning_time >= 1.0:
+                        self._last_skip_warning_time = now
+                        self.get_logger().warning(
+                            f"Loop is too slow! "
+                            f"Skipped {packets_skipped} packets. "
+                            f"(Last: {self._last_counter}, New: {counter})"
+                        )
                 self._last_counter = counter
 
-            with self.publisher_lock:
+            level = self._status_level_from_bits(status_bits)
+            self._is_sensor_ok = level == DiagnosticStatus.OK
+
+            if self._is_sensor_ok and self._base_stamp_ros is None:
+                self._base_stamp_ros = self.get_clock().now()
+                self._base_stamp_ns = self._base_stamp_ros.nanoseconds  # type: ignore
+                self._base_stamp_ns -= first_sample[2] * sample_period_ns
+                self._base_counter = counter
+
+            if self._is_sensor_ok and data_publisher:
+                packet_period_ns = sample_period_ns * samples_per_packet
+                counter_delta = (counter - self._base_counter + 65536) % 65536
+                packet_stamp_ns = self._base_stamp_ns + counter_delta * packet_period_ns
+                stamp = data_msg.header.stamp
+                wrench = data_msg.wrench
+                force = wrench.force
+                torque = wrench.torque
                 try:
-                    if self.ft_data_publisher and self._is_sensor_ok:
-                        self.ft_data_publisher.publish(data_msg)
-                    if self.ft_state_publisher and level != self._last_state_level:
-                        state_msg.level = level
-                        state_msg.message = message
-                        self._last_state_level = level  # type: ignore
-                        self.ft_state_publisher.publish(state_msg)
+                    for sample in samples:
+                        current_stamp_ns = (
+                            packet_stamp_ns + sample[2] * sample_period_ns
+                        )
+                        stamp.sec = current_stamp_ns // 1_000_000_000
+                        stamp.nanosec = current_stamp_ns % 1_000_000_000
+                        force.x = sample[5]
+                        force.y = sample[6]
+                        force.z = sample[7]
+                        torque.x = sample[8]
+                        torque.y = sample[9]
+                        torque.z = sample[10]
+                        data_publisher.publish(data_msg)
+                except Exception:
+                    return
+
+            if state_publisher and level != self._last_state_level:
+                try:
+                    _, message = self._get_status_level({"status_bits": status_bits})
+                    state_msg.level = level
+                    state_msg.message = message
+                    self._last_state_level = level  # type: ignore
+                    state_publisher.publish(state_msg)
                 except Exception:
                     return
 

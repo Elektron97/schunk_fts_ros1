@@ -60,6 +60,20 @@ def test_driver_configures_output_rate_parameter(monkeypatch):
     assert calls == [("0a", "1020", "00")]
 
 
+def test_driver_filters_udp_source_by_default_host():
+    driver = Driver(host="10.49.60.117")
+
+    assert driver.streaming_source_host == "10.49.60.117"
+    assert driver.stream.source_ip == "10.49.60.117"
+
+
+def test_driver_supports_explicit_udp_source_host():
+    driver = Driver(host="10.49.60.117", streaming_source_host="127.0.0.1")
+
+    assert driver.streaming_source_host == "127.0.0.1"
+    assert driver.stream.source_ip == "127.0.0.1"
+
+
 def test_driver_initializes_as_expected():
 
     # Default initialization
@@ -149,7 +163,12 @@ def test_driver_timeouts_when_streaming_fails():
 def test_driver_supports_sampling_force_torque_data(sensor, send_messages):
     HOST, PORT = sensor
     test_port = 8001
-    driver = Driver(host=HOST, port=PORT, streaming_port=test_port)
+    driver = Driver(
+        host=HOST,
+        port=PORT,
+        streaming_port=test_port,
+        streaming_source_host="127.0.0.1",
+    )
 
     # Not streaming
     assert driver.sample() is None

@@ -17,6 +17,7 @@ from schunk_fts_library.utility import (
     Connection,
     Stream,
     FTData,
+    FTSample,
     FTDataBuffer,
     SetParameterRequest,
     SetParameterResponse,
@@ -89,6 +90,7 @@ class Driver(object):
         port: int = 82,
         streaming_port: int = 54843,
         output_rate_hz: int = 1000,
+        streaming_source_host: str | None = None,
     ) -> None:
         if output_rate_hz not in OUTPUT_RATE_HZ_TO_PARAMETER_VALUE:
             supported_rates = ", ".join(
@@ -102,13 +104,17 @@ class Driver(object):
         self.host = host
         self.port = port
         self.streaming_port = streaming_port
+        self.streaming_source_host = streaming_source_host or host
         self.output_rate_hz = output_rate_hz
         self.output_rate_parameter_value = OUTPUT_RATE_HZ_TO_PARAMETER_VALUE[
             output_rate_hz
         ]
         self.connection: Connection = Connection(host=host, port=port)
         self.ft_data: FTDataBuffer = FTDataBuffer()
-        self.stream: Stream = Stream(port=streaming_port)
+        self.stream: Stream = Stream(
+            port=streaming_port,
+            source_host=self.streaming_source_host,
+        )
         self.stream_update_thread: Thread = Thread()
         self.is_streaming = False
         self.name = "SCHUNK FTS"  # Placeholder until we can read it from the device
@@ -183,6 +189,15 @@ class Driver(object):
             return None
 
         return self.ft_data.get()
+
+    def sample_batch(self) -> list[FTSample] | None:
+        if not self.is_streaming:
+            return None
+
+        return self.ft_data.get_sample_batch()
+
+    def clear_samples(self) -> None:
+        self.ft_data.clear()
 
     def get_parameter(self, index: str, subindex: str = "00") -> GetParameterResponse:
         req = GetParameterRequest()

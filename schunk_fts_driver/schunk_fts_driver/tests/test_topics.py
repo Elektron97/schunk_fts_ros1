@@ -53,6 +53,16 @@ def test_packet_gap_helper_ignores_expected_counter_sequence():
     assert RosDriver._packet_gap(previous_counter=65535, counter=0) == 0
 
 
+def test_status_level_helper_matches_status_bits():
+    assert RosDriver._status_level_from_bits(0x00000001) == DiagnosticStatus.OK
+    assert RosDriver._status_level_from_bits(0x00000000) == DiagnosticStatus.WARN
+    assert RosDriver._status_level_from_bits(0x00000002) == DiagnosticStatus.WARN
+    assert RosDriver._status_level_from_bits(0x00000004) == DiagnosticStatus.WARN
+    assert RosDriver._status_level_from_bits(0x00000008) == DiagnosticStatus.ERROR
+    assert RosDriver._status_level_from_bits(0x00000010) == DiagnosticStatus.WARN
+    assert RosDriver._status_level_from_bits(0x00000020) == DiagnosticStatus.WARN
+
+
 def test_driver_publishes_force_torque_data(lifecycle_interface):
     """Test that the driver publishes force-torque data when active."""
     driver = lifecycle_interface
