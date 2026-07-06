@@ -16,7 +16,7 @@
 import struct
 import socket
 from socket import socket as Socket
-from threading import Lock, Event
+from threading import Lock, RLock, Event
 from typing import TypedDict
 import time
 from collections import deque
@@ -165,7 +165,7 @@ class FTDataBuffer(object):
 class Stream(object):
     def __init__(self, port: int) -> None:
         self.port: int = port
-        self._lock: Lock = Lock()
+        self._lock: RLock = RLock()
         self._is_open: bool = False
         self._open_count: int = 0
         self._reset_socket()
