@@ -135,9 +135,9 @@ def test_data_buffer_concurrent_put_and_get():
     assert not cons_thread.is_alive()
 
 
-def test_stream_concurrent_is_open_calls(send_messages):
+def test_stream_concurrent_is_open_calls(unused_udp_port):
     """Test concurrent is_open() calls don't cause race conditions."""
-    stream = Stream(port=8002)
+    stream = Stream(port=unused_udp_port)
     num_threads = 20
     iterations = 50
     barrier = Barrier(num_threads)
@@ -159,9 +159,9 @@ def test_stream_concurrent_is_open_calls(send_messages):
     assert all(not t.is_alive() for t in threads)
 
 
-def test_stream_concurrent_read_operations(send_messages):
+def test_stream_concurrent_read_operations(send_messages, unused_udp_port):
     """Test concurrent read operations are safe."""
-    stream = Stream(port=8003)
+    stream = Stream(port=unused_udp_port)
     num_threads = 5
     packets_sent = 20
 
@@ -183,8 +183,10 @@ def test_stream_concurrent_read_operations(send_messages):
 
     with stream:
         # Send packets
-        send_messages(8003, test_packets)
+        sender = send_messages(unused_udp_port, test_packets)
         time.sleep(0.05)
+        sender.join(timeout=1.0)
+        assert not sender.is_alive()
 
         threads = []
         for tid in range(num_threads):
@@ -417,9 +419,9 @@ def test_driver_no_deadlock_with_concurrent_operations(sensor):
     assert all(completed.values())
 
 
-def test_stream_lock_prevents_concurrent_state_modification():
+def test_stream_lock_prevents_concurrent_state_modification(unused_udp_port):
     """Test that lock prevents concurrent is_open modifications."""
-    stream = Stream(port=8004)
+    stream = Stream(port=unused_udp_port)
     num_threads = 50
     barrier = Barrier(num_threads)
 

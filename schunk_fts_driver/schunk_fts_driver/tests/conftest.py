@@ -15,7 +15,11 @@
 # --------------------------------------------------------------------------------
 
 import pytest
+import os
 import rclpy
+import signal
+import threading
+import time
 from launch import LaunchDescription  # type: ignore [attr-defined]
 from launch.actions import IncludeLaunchDescription
 from launch.substitutions import PathJoinSubstitution
@@ -23,6 +27,46 @@ from launch_ros.substitutions import FindPackageShare
 import launch_pytest
 from lifecycle_msgs.srv import ChangeState, GetState
 from rclpy.node import Node
+
+
+def _test_timeout_sec():
+    return float(os.getenv("SCHUNK_FTS_TEST_TIMEOUT_SEC", "60"))
+
+
+@pytest.hookimpl(hookwrapper=True)
+def pytest_runtest_call(item):
+    timeout_sec = _test_timeout_sec()
+    if (
+        timeout_sec <= 0
+        or not hasattr(signal, "SIGALRM")
+        or threading.current_thread() is not threading.main_thread()
+    ):
+        yield
+        return
+
+    def timeout_handler(signum, frame):
+        raise TimeoutError(f"{item.nodeid} exceeded {timeout_sec:.1f}s")
+
+    previous_handler = signal.getsignal(signal.SIGALRM)
+    signal.signal(signal.SIGALRM, timeout_handler)
+    previous_timer = signal.setitimer(signal.ITIMER_REAL, timeout_sec)
+    try:
+        yield
+    finally:
+        signal.setitimer(signal.ITIMER_REAL, previous_timer[0], previous_timer[1])
+        signal.signal(signal.SIGALRM, previous_handler)
+
+
+def service_is_ready(client, timeout_sec=None):
+    timeout_sec = float(
+        timeout_sec or os.getenv("SCHUNK_FTS_SERVICE_TIMEOUT_SEC", "10")
+    )
+    deadline = time.monotonic() + timeout_sec
+    while time.monotonic() < deadline:
+        remaining = deadline - time.monotonic()
+        if client.wait_for_service(timeout_sec=min(0.25, max(0.0, remaining))):
+            return True
+    return False
 
 
 @pytest.fixture(scope="module")
@@ -62,8 +106,8 @@ class LifecycleInterface(object):
             GetState, "/schunk/fts/get_state"
         )
 
-        self.change_state_client.wait_for_service(timeout_sec=2)
-        self.get_state_client.wait_for_service(timeout_sec=2)
+        service_is_ready(self.change_state_client)
+        service_is_ready(self.get_state_client)
 
     def change_state(self, transition_id):
         req = ChangeState.Request()

@@ -17,6 +17,7 @@ import rclpy
 from rclpy.node import Node
 from rcl_interfaces.srv import GetParameters, SetParameters, ListParameters
 from rcl_interfaces.msg import Parameter, ParameterValue, ParameterType
+from .conftest import service_is_ready
 
 
 DRIVER_PARAMETERS = [
@@ -31,20 +32,21 @@ def test_whether_we_cover_all_driver_parameters(driver):
     list_params_client = node.create_client(
         ListParameters, "/schunk/fts/list_parameters"
     )
-    assert list_params_client.wait_for_service(timeout_sec=2)
+    assert service_is_ready(list_params_client)
 
     # Meta-check if we test all our node parameters
     future = list_params_client.call_async(ListParameters.Request())
     rclpy.spin_until_future_complete(node, future, timeout_sec=10.0)
     for param in DRIVER_PARAMETERS:
         assert param in future.result().result.names
+    node.destroy_node()
 
 
 def test_driver_has_expected_parameters_after_startup(driver, sensor):
     HOST, PORT = sensor
-    node = Node("test_startup_parameters")
+    node = Node("test_startup_parameter_values")
     get_params_client = node.create_client(GetParameters, "/schunk/fts/get_parameters")
-    assert get_params_client.wait_for_service(timeout_sec=2)
+    assert service_is_ready(get_params_client)
 
     default_parameters = [
         Parameter(
@@ -73,6 +75,7 @@ def test_driver_has_expected_parameters_after_startup(driver, sensor):
     assert len(future.result().values) == len(default_parameters)
     for param, expected in zip(default_parameters, future.result().values):
         assert param.value == expected
+    node.destroy_node()
 
 
 def test_driver_supports_setting_parameters(driver):

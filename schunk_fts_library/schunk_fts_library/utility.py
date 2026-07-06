@@ -167,6 +167,7 @@ class Stream(object):
         self.port: int = port
         self._lock: Lock = Lock()
         self._is_open: bool = False
+        self._open_count: int = 0
         self._reset_socket()
 
     def is_open(self) -> bool:
@@ -187,23 +188,30 @@ class Stream(object):
         return packets
 
     def __enter__(self) -> "Stream":
-        if self.port < 1024 or self.port > 65535:
-            pass
-        else:
+        with self._lock:
+            if self.port < 1024 or self.port > 65535:
+                return self
+            if self._is_open:
+                self._open_count += 1
+                return self
             if self.socket.fileno() == -1:  # already closed once
                 self._reset_socket()
             try:
                 self.socket.bind(("", self.port))
-                with self._lock:
-                    self._is_open = True
+                self._is_open = True
+                self._open_count = 1
             except OSError as e:
                 print(f"Stream: General socket error: {e}")
         return self
 
     def __exit__(self, exc_type, exc_value, traceback) -> None:
         with self._lock:
+            if self._open_count > 1:
+                self._open_count -= 1
+                return
+            self._open_count = 0
             self._is_open = False
-        self.socket.close()
+            self.socket.close()
 
     def _reset_socket(self) -> None:
         self.socket: Socket = Socket(socket.AF_INET, socket.SOCK_DGRAM)
