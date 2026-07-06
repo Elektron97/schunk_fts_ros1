@@ -14,3 +14,7 @@
 # this program. If not, see <https://www.gnu.org/licenses/>.
 # --------------------------------------------------------------------------------
 pytest_plugins = ["schunk_fts_library.fixtures"]
+
+
+def load_tests(loader, standard_tests, pattern):
+    return loader.suiteClass()
