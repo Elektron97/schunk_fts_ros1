@@ -26,7 +26,7 @@ pre-commit install
 cd /workspace
 
 # Build the ROS workspace
-source /opt/ros/humble/setup.bash
+source /opt/ros/${ROS_DISTRO}/setup.bash
 cd /workspace
 colcon build --symlink-install
 # Overlay the production workspace

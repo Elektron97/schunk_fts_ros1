@@ -71,6 +71,24 @@ cd schunk_fts_dummy && cargo run  # Terminal 1
 ros2 launch schunk_fts_driver driver.launch.py host:=127.0.0.1 port:=8082  # Terminal 2
 ```
 
+#### Changing the ROS Version (Devcontainer)
+
+The repository ships with three Dockerfiles — one per supported ROS 2 distribution:
+
+| File | ROS 2 distro |
+|------|-------------|
+| `Dockerfile.humble` | Humble Hawksbill |
+| `Dockerfile.jazzy` | Jazzy Jalisco |
+| `Dockerfile.lyrical` | Lyrical Llama |
+
+To switch, open [.devcontainer/devcontainer.json](.devcontainer/devcontainer.json) and change the `dockerFile` value:
+
+```json
+"dockerFile": "../Dockerfile.jazzy"
+```
+
+Then rebuild the container: **Ctrl+Shift+P → Dev Containers: Rebuild Container**.
+
 #### Test
 Tests require either a connected real sensor or a running simulator. Tests will automatically detect which is connected. Running both at the same time is not recommended. IP-addresses can be adjusted in [fixtures.py](schunk_fts_library/schunk_fts_library/fixtures.py).
 ```bash
