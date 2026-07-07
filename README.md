@@ -13,6 +13,9 @@
   <a href="https://github.com/SCHUNK-SE-Co-KG/schunk_force_torque_sensor/actions">
     <img src="https://github.com/SCHUNK-SE-Co-KG/schunk_force_torque_sensor/actions/workflows/industrial_ci_jazzy_action.yml/badge.svg" alt="build badge jazzy">
   </a>
+  <a href="https://github.com/SCHUNK-SE-Co-KG/schunk_force_torque_sensor/actions">
+    <img src="https://github.com/SCHUNK-SE-Co-KG/schunk_force_torque_sensor/actions/workflows/industrial_ci_lyrical_action.yml/badge.svg" alt="build badge lyrical">
+  </a>
 </p>
 
 ---
@@ -48,9 +51,9 @@ ros2 launch schunk_fts_driver driver.launch.py  # Default: 192.168.0.100
 
 #### 3. Activate
 ```bash
-ros2 lifecycle set /schunk/driver configure
-ros2 lifecycle set /schunk/driver activate
-ros2 topic echo /schunk/driver/data
+ros2 lifecycle set /schunk/fts configure
+ros2 lifecycle set /schunk/fts activate
+ros2 topic echo /schunk/fts/data
 ```
 
 ### For Developers
@@ -94,17 +97,17 @@ See individual package READMEs for detailed documentation:
 
 ```bash
 # Tare sensor
-ros2 service call /schunk/driver/tare std_srvs/srv/Trigger '{}'
+ros2 service call /schunk/fts/tare std_srvs/srv/Trigger '{}'
 
 # Select tool setting (0-3)
-ros2 service call /schunk/driver/select_tool_setting schunk_fts_interfaces/srv/SelectToolSetting '{tool_index: 0}'
+ros2 service call /schunk/fts/select_tool_setting schunk_fts_interfaces/srv/SelectToolSetting '{tool_index: 0}'
 
 # Set noise filter (0=none, 1=2x, 2=4x, 3=8x, 4=16x)
-ros2 service call /schunk/driver/select_noise_filter schunk_fts_interfaces/srv/SelectNoiseFilter '{filter_number: 2}'
+ros2 service call /schunk/fts/select_noise_filter schunk_fts_interfaces/srv/SelectNoiseFilter '{filter_number: 2}'
 
 # Lifecycle control
-ros2 lifecycle set /schunk/driver configure
-ros2 lifecycle set /schunk/driver activate
+ros2 lifecycle set /schunk/fts configure
+ros2 lifecycle set /schunk/fts activate
 ```
 
 ## Troubleshooting
@@ -122,19 +125,19 @@ For high-frequency RT applications, consider using a industrial Ethernet variant
 
 | Topic | Type | Description |
 |-------|------|-------------|
-| `/schunk/driver/data` | `geometry_msgs/WrenchStamped` | Force-torque measurements at 1000 Hz |
-| `/schunk/driver/state` | `diagnostic_msgs/DiagnosticStatus` | Sensor status and diagnostics |
+| `/schunk/fts/data` | `geometry_msgs/WrenchStamped` | Force-torque measurements at 1000 Hz |
+| `/schunk/fts/state` | `diagnostic_msgs/DiagnosticStatus` | Sensor status and diagnostics |
 
 ## Services
 
 | Service | Type | Description |
 |---------|------|-------------|
-| `/schunk/driver/tare` | `std_srvs/Trigger` | Zero the sensor data|
-| `/schunk/driver/reset_tare` | `std_srvs/Trigger` | Remove tare offset |
-| `/schunk/driver/select_tool_setting` | `schunk_fts_interfaces/SelectToolSetting` | Select tool configuration (0-3) |
-| `/schunk/driver/select_noise_filter` | `schunk_fts_interfaces/SelectNoiseFilter` | Select noise filter (0-4) |
-| `/schunk/driver/send_command` | `schunk_fts_interfaces/SendCommand` | Send raw command (advanced) |
-| `/schunk/driver/set_parameter` | `schunk_fts_interfaces/SetParameter` | Set sensor parameter (advanced) |
+| `/schunk/fts/tare` | `std_srvs/Trigger` | Zero the sensor data|
+| `/schunk/fts/reset_tare` | `std_srvs/Trigger` | Remove tare offset |
+| `/schunk/fts/select_tool_setting` | `schunk_fts_interfaces/SelectToolSetting` | Select tool configuration (0-3) |
+| `/schunk/fts/select_noise_filter` | `schunk_fts_interfaces/SelectNoiseFilter` | Select noise filter (0-4) |
+| `/schunk/fts/send_command` | `schunk_fts_interfaces/SendCommand` | Send raw command (advanced) |
+| `/schunk/fts/set_parameter` | `schunk_fts_interfaces/SetParameter` | Set sensor parameter (advanced) |
 
 ## Multiple Sensors
 

@@ -19,7 +19,7 @@ from lifecycle_msgs.srv import GetState
 
 def test_normal_startup_works(driver):
     node = Node("test_startup")
-    client = node.create_client(GetState, "/schunk/driver/get_state")
+    client = node.create_client(GetState, "/schunk/fts/get_state")
 
     # The driver started correctly if the lifecycle interface is reachable
     assert client.wait_for_service(timeout_sec=2)

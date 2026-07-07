@@ -1,6 +1,7 @@
-FROM ros:humble-ros-core
+FROM ros:lyrical-ros-core
 
-ENV DEBIAN_FRONTEND=noninteractive
+ENV DEBIAN_FRONTEND=noninteractive \
+    PIP_BREAK_SYSTEM_PACKAGES=1
 
 # Install essentials
 RUN apt-get update -qq && apt-get install -y --no-install-recommends \
@@ -50,14 +51,11 @@ RUN python3 -m pip install --no-cache-dir --ignore-installed packaging==26.2
 # Install Python packages
 RUN pip install --ignore-installed -e /schunk_force_torque_sensor/src/schunk_fts_library
 
-RUN python3 -m pip install --no-cache-dir --ignore-installed pytest==8.4.2 && \
-    python3 -m pytest --version
-
 # Build ROS workspace
-RUN /bin/bash -c "source /opt/ros/humble/setup.bash && colcon build"
+RUN /bin/bash -c "source /opt/ros/lyrical/setup.bash && colcon build"
 
 # Ensure workspace is sourced in every shell
-RUN echo 'source /opt/ros/humble/setup.bash' >> /etc/bash.bashrc && \
+RUN echo 'source /opt/ros/lyrical/setup.bash' >> /etc/bash.bashrc && \
     echo 'source /schunk_force_torque_sensor/install/setup.bash' >> /etc/bash.bashrc
 
 # Clean up apt cache

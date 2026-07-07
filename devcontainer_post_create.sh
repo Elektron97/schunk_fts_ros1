@@ -16,6 +16,8 @@ rosdep install --from-paths /workspace/src --ignore-src -y
 # Install the local python packages
 pip install -e /workspace/src/schunk_fts_library --upgrade
 pip install -e /workspace/src/schunk_fts_driver --upgrade
+pip install --force-reinstall pytest==8.4.2
+python3 -m pytest --version
 
 # Install and setup pre-commit
 pip install pre-commit

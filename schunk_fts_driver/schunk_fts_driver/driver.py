@@ -31,7 +31,7 @@ from rclpy.service import Service
 from threading import Thread, Event
 import gc as garbage_collector
 import time
-from example_interfaces.srv import Trigger
+from std_srvs.srv import Trigger
 
 from schunk_fts_interfaces.srv import (  # type: ignore [attr-defined]
     SendCommand,

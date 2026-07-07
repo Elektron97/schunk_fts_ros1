@@ -1,4 +1,4 @@
-name: Humble
+name: Lyrical
 
 on:
   push:
@@ -15,13 +15,14 @@ jobs:
   industrial_ci:
     env:
       BEFORE_BUILD_TARGET_WORKSPACE: '.github/script/install_dependencies.sh'
-      BEFORE_RUN_TARGET_TEST: 'bash .github/script/install_dummy.sh && bash .github/script/downgrade_pytest_humble.sh'
+      NOT_TEST_BUILD: 'true'
+      AFTER_SCRIPT: 'bash "$TARGET_REPO_PATH/.github/script/run_pytest_lyrical.sh"'
 
     strategy:
       fail-fast: false
       matrix:
         env:
-          - {ROS_DISTRO: humble, ROS_REPO: main}
+          - {ROS_DISTRO: lyrical, ROS_REPO: main}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

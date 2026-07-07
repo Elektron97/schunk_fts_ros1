@@ -21,7 +21,7 @@ from rclpy.executors import MultiThreadedExecutor
 from lifecycle_msgs.msg import Transition, State
 from geometry_msgs.msg import WrenchStamped
 from diagnostic_msgs.msg import DiagnosticStatus
-from example_interfaces.srv import Trigger
+from std_srvs.srv import Trigger
 from functools import partial
 import time
 import threading
@@ -51,7 +51,7 @@ def test_complete_startup_to_shutdown_cycle(sensor, lifecycle_interface):
         messages.append(msg)
 
     _ = driver.node.create_subscription(
-        WrenchStamped, "/schunk/driver/data", partial(collect, messages=messages), 10
+        WrenchStamped, "/schunk/fts/data", partial(collect, messages=messages), 10
     )
 
     timeout = time.time() + 0.5
@@ -96,7 +96,7 @@ def test_end_to_end_data_flow(sensor, lifecycle_interface):
 
     _ = driver.node.create_subscription(
         WrenchStamped,
-        "/schunk/driver/data",
+        "/schunk/fts/data",
         partial(analyze_data, data=received_data, timestamps=timestamps),
         10,
     )
@@ -142,7 +142,7 @@ def test_system_behavior_under_load(sensor, lifecycle_interface):
     for i in range(5):
         _ = driver.node.create_subscription(
             WrenchStamped,
-            "/schunk/driver/data",
+            "/schunk/fts/data",
             partial(collect_factory, i),
             QoSProfile(
                 depth=10,
@@ -153,7 +153,7 @@ def test_system_behavior_under_load(sensor, lifecycle_interface):
 
     # Also make periodic service calls to add load
     load_node = Node("load_test_service_caller")
-    tare_cli = load_node.create_client(Trigger, "/schunk/driver/tare")
+    tare_cli = load_node.create_client(Trigger, "/schunk/fts/tare")
     assert tare_cli.wait_for_service(timeout_sec=5.0)
 
     service_results = []
@@ -227,7 +227,7 @@ def test_multiple_complete_cycles(sensor, lifecycle_interface):
 
         sub = driver.node.create_subscription(
             WrenchStamped,
-            "/schunk/driver/data",
+            "/schunk/fts/data",
             partial(collect, messages=messages),
             10,
         )
@@ -240,7 +240,7 @@ def test_multiple_complete_cycles(sensor, lifecycle_interface):
 
         # Make a service call
         node = Node(f"service_test_cycle_{cycle}")
-        cli = node.create_client(Trigger, "/schunk/driver/tare")
+        cli = node.create_client(Trigger, "/schunk/fts/tare")
         assert cli.wait_for_service(timeout_sec=2.0)
         req = Trigger.Request()
         future = cli.call_async(req)
@@ -281,14 +281,14 @@ def test_data_and_diagnostics_correlation(sensor, lifecycle_interface):
 
     _ = driver.node.create_subscription(
         WrenchStamped,
-        "/schunk/driver/data",
+        "/schunk/fts/data",
         partial(collect_data, messages=data_messages),
         10,
     )
 
     _ = driver.node.create_subscription(
         DiagnosticStatus,
-        "/schunk/driver/state",
+        "/schunk/fts/state",
         partial(collect_diagnostics, messages=diagnostic_messages),
         latching_qos,
     )
@@ -329,13 +329,13 @@ def test_service_and_data_interleaving(sensor, lifecycle_interface):
 
     _ = driver.node.create_subscription(
         WrenchStamped,
-        "/schunk/driver/data",
+        "/schunk/fts/data",
         partial(collect_data, messages=data_messages),
         10,
     )
 
     node = Node("interleave_test")
-    tare_cli = node.create_client(Trigger, "/schunk/driver/tare")
+    tare_cli = node.create_client(Trigger, "/schunk/fts/tare")
     assert tare_cli.wait_for_service(timeout_sec=2.0)
 
     # Interleave data collection with service calls
@@ -397,7 +397,7 @@ def test_long_running_stability(sensor, lifecycle_interface):
 
     _ = driver.node.create_subscription(
         WrenchStamped,
-        "/schunk/driver/data",
+        "/schunk/fts/data",
         partial(collect_with_validation, messages=messages, errors=errors),
         10,
     )
@@ -437,7 +437,7 @@ def test_resource_cleanup_verification(sensor, lifecycle_interface):
         messages.append(msg)
 
     sub = driver.node.create_subscription(
-        WrenchStamped, "/schunk/driver/data", partial(collect, messages=messages), 10
+        WrenchStamped, "/schunk/fts/data", partial(collect, messages=messages), 10
     )
 
     timeout = time.time() + 0.3
@@ -465,7 +465,7 @@ def test_resource_cleanup_verification(sensor, lifecycle_interface):
         messages.append(msg)
 
     _ = driver.node.create_subscription(
-        WrenchStamped, "/schunk/driver/data", partial(collect2, messages=messages2), 10
+        WrenchStamped, "/schunk/fts/data", partial(collect2, messages=messages2), 10
     )
 
     timeout = time.time() + 0.3
@@ -503,14 +503,14 @@ def test_concurrent_operations_integration(sensor, lifecycle_interface):
 
     _ = driver.node.create_subscription(
         WrenchStamped,
-        "/schunk/driver/data",
+        "/schunk/fts/data",
         partial(collect_data, messages=data_messages),
         10,
     )
 
     _ = driver.node.create_subscription(
         DiagnosticStatus,
-        "/schunk/driver/state",
+        "/schunk/fts/state",
         partial(collect_diagnostics, messages=diagnostic_messages),
         latching_qos,
     )
@@ -520,7 +520,7 @@ def test_concurrent_operations_integration(sensor, lifecycle_interface):
 
     # Create the node for making service calls
     service_node = Node("concurrent_ops_test")
-    cli = service_node.create_client(Trigger, "/schunk/driver/tare")
+    cli = service_node.create_client(Trigger, "/schunk/fts/tare")
 
     # Add ALL nodes to the executor
     executor.add_node(driver.node)
