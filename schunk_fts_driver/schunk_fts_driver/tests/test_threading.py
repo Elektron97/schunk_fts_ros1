@@ -17,6 +17,7 @@
 import rclpy
 from rclpy.node import Node
 from rclpy.executors import MultiThreadedExecutor
+from rclpy.qos import QoSProfile, ReliabilityPolicy
 from lifecycle_msgs.msg import Transition, State
 from geometry_msgs.msg import WrenchStamped
 from std_srvs.srv import Trigger
@@ -24,6 +25,19 @@ from schunk_fts_interfaces.srv import SendCommand  # type: ignore [attr-defined]
 from functools import partial
 import time
 import threading
+
+
+def data_qos(depth: int) -> QoSProfile:
+    return QoSProfile(depth=depth, reliability=ReliabilityPolicy.BEST_EFFORT)
+
+
+def wait_for_future(future, timeout_sec: float = 5.0):
+    deadline = time.monotonic() + timeout_sec
+    while time.monotonic() < deadline:
+        if future.done():
+            return future.result()
+        time.sleep(0.005)
+    raise TimeoutError(f"Service response did not arrive within {timeout_sec:.1f}s")
 
 
 def test_concurrent_data_publishing_and_state_transitions(sensor, lifecycle_interface):
@@ -46,7 +60,7 @@ def test_concurrent_data_publishing_and_state_transitions(sensor, lifecycle_inte
         WrenchStamped,
         "/schunk/fts/data",
         partial(collect_messages, messages=messages),
-        10,
+        data_qos(10),
     )
 
     # Collect messages while performing state transitions
@@ -102,11 +116,7 @@ def test_concurrent_service_calls_thread_safety(sensor, lifecycle_interface):
             req = Trigger.Request()
             future = tare_client.call_async(req)
 
-            # 3. Use the shared executor to safely wait for THIS future to complete.
-            #    This is a thread-safe operation.
-            executor.spin_until_future_complete(future, timeout_sec=5.0)
-
-            result = future.result()
+            result = wait_for_future(future)
             with lock:
                 if result:
                     results.append(result)
@@ -187,7 +197,7 @@ def test_mutex_protection_during_publisher_destruction(sensor, lifecycle_interfa
         WrenchStamped,
         "/schunk/fts/data",
         partial(collect_messages, messages=messages),
-        10,
+        data_qos(10),
     )
 
     # Start collecting messages
@@ -229,13 +239,22 @@ def test_no_race_condition_in_data_buffer_access(sensor, lifecycle_interface):
         messages.append(msg)
 
     _ = driver.node.create_subscription(
-        WrenchStamped, "/schunk/fts/data", partial(collect1, messages=messages1), 10
+        WrenchStamped,
+        "/schunk/fts/data",
+        partial(collect1, messages=messages1),
+        data_qos(10),
     )
     _ = driver.node.create_subscription(
-        WrenchStamped, "/schunk/fts/data", partial(collect2, messages=messages2), 10
+        WrenchStamped,
+        "/schunk/fts/data",
+        partial(collect2, messages=messages2),
+        data_qos(10),
     )
     _ = driver.node.create_subscription(
-        WrenchStamped, "/schunk/fts/data", partial(collect3, messages=messages3), 10
+        WrenchStamped,
+        "/schunk/fts/data",
+        partial(collect3, messages=messages3),
+        data_qos(10),
     )
 
     # Spin rapidly to stress test concurrent access
@@ -283,7 +302,7 @@ def test_service_calls_during_active_publishing(sensor, lifecycle_interface):
         WrenchStamped,
         "/schunk/fts/data",
         partial(collect_messages, messages=messages),
-        10,
+        data_qos(10),
     )
 
     # Start collecting data
@@ -351,13 +370,14 @@ def test_callback_group_isolation(sensor, lifecycle_interface):
     driver.change_state(Transition.TRANSITION_CONFIGURE)
     driver.change_state(Transition.TRANSITION_ACTIVATE)
 
-    # Node for the service client
+    # Nodes for the data subscriber and service client
+    data_node = Node(f"callback_group_data_{time.time_ns()}")
     client_node = Node("callback_group_test")
 
-    # 1. Use a single MultiThreadedExecutor to manage ALL nodes in the test.
+    # 1. Use a single MultiThreadedExecutor to manage callback traffic in the test.
     executor = MultiThreadedExecutor()
-    executor.add_node(driver.node)  # The node with the subscription
-    executor.add_node(client_node)  # The node with the service client
+    executor.add_node(data_node)
+    executor.add_node(client_node)
 
     # 2. Run the executor in a background thread. It will handle all callbacks
     #    for both the subscription and the service client response.
@@ -375,20 +395,18 @@ def test_callback_group_isolation(sensor, lifecycle_interface):
         with lock:
             data_received.append(msg)
 
-    # Subscription is on driver.node, which is managed by the executor
-    _ = driver.node.create_subscription(
+    _ = data_node.create_subscription(
         WrenchStamped,
         "/schunk/fts/data",
         collect_data,
-        10,
+        data_qos(10),
     )
 
     # Start a service call in a separate thread
     def call_service():
         req = Trigger.Request()
         future = tare_client.call_async(req)
-        # 3. Use the shared executor to safely wait for the future to complete.
-        executor.spin_until_future_complete(future, timeout_sec=5.0)
+        wait_for_future(future)
         with lock:
             service_completed.append(True)
 
@@ -410,6 +428,7 @@ def test_callback_group_isolation(sensor, lifecycle_interface):
     assert len(data_received) > 0, "Data should be published while service is called"
     assert len(service_completed) == 1, "Service should complete"
 
+    data_node.destroy_node()
     client_node.destroy_node()
     driver.change_state(Transition.TRANSITION_DEACTIVATE)
     driver.change_state(Transition.TRANSITION_CLEANUP)
@@ -451,7 +470,7 @@ def test_no_data_corruption_under_stress(sensor, lifecycle_interface):
         WrenchStamped,
         "/schunk/fts/data",
         partial(check_data_validity, messages=messages, corrupted=corrupted),
-        10,
+        data_qos(10),
     )
 
     # Collect many messages rapidly to stress test
@@ -487,7 +506,7 @@ def test_repeated_activation_cycles_thread_safety(sensor, lifecycle_interface):
             WrenchStamped,
             "/schunk/fts/data",
             partial(collect, messages=messages),
-            10,
+            data_qos(10),
         )
 
         timeout = time.time() + 0.5

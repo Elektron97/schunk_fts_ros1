@@ -24,7 +24,7 @@ A ROS2 driver for SCHUNK force-torque sensors with configurable UDP data streami
 
 ## Features
 
-- Configurable force-torque data streaming via UDP: 1000, 500, 250, 100, or 8000 Hz
+- Configurable force-torque data streaming via UDP: 1000, 500, 250, 100, or 500_16 packaged mode
 - Automatic reconnection e.g. on power loss
 - ROS2 lifecycle node with controlled state transitions
 - Tare operations and tool settings (0-3)
@@ -133,9 +133,11 @@ ros2 lifecycle set /schunk/fts activate
 **Cannot connect**: Check `ping 192.168.0.100`, verify sensor is powered, check firewall (TCP:82, UDP:54843)
 
 **Low rate**: Check CPU load, network quality, ensure driver is ACTIVE
-For high-frequency RT applications, consider using a industrial Ethernet variant of the sensor as they support 8000 Hz.
+For high-frequency RT applications, consider using an industrial Ethernet variant of the sensor.
 
-**Output rate**: The Python library accepts `output_rate_hz` values `1000`, `500`, `250`, `100`, and `8000`. The `8000` setting uses the sensor's 500 Hz UDP packaged mode with 16 sequential datapoints per UDP packet.
+A C++ subscriber is recommended as Python subscribers may have worse performance.
+
+**Output rate**: The Python library accepts `output_rate` values `1000`, `500`, `250`, `100`, and `500_16`. The `500_16` setting uses the sensor's 500 Hz UDP packaged mode with 16 sequential measurements per UDP packet.
 
 **Wrong data**: Tare the sensor, check tool setting, verify status topic
 

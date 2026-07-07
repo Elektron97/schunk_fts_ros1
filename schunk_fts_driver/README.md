@@ -8,7 +8,7 @@ ROS2 lifecycle node for SCHUNK force-torque sensors. Wraps `schunk_fts_library` 
 # Launch driver
 ros2 launch schunk_fts_driver driver.launch.py  # Default: 192.168.0.100
 ros2 launch schunk_fts_driver driver.launch.py host:=192.168.1.50  # Custom IP (set via SCHUNK Control Center)
-ros2 launch schunk_fts_driver driver.launch.py host:=192.168.1.50 output_rate_hz:=500
+ros2 launch schunk_fts_driver driver.launch.py host:=192.168.1.50 output_rate:=500_16
 
 # Activate
 ros2 lifecycle set /schunk/fts configure
@@ -41,7 +41,7 @@ ros2 lifecycle set /schunk/fts configure|activate|deactivate|cleanup
 
 | Topic | Type | Rate | Description |
 |-------|------|------|-------------|
-| `/schunk/fts/data` | `geometry_msgs/WrenchStamped` | Sensor output rate | Force-torque data |
+| `/schunk/fts/data` | `geometry_msgs/WrenchStamped` | Sensor output rate | Force-torque data; `500_16` publishes 16 timestamp-spaced messages per 500 Hz UDP packet |
 | `/schunk/fts/state` | `diagnostic_msgs/DiagnosticStatus` | latched - published on change | Sensor status |
 
 ## Services
@@ -69,7 +69,7 @@ Auto-reconnects on power loss (100ms detection, 1s retry).
 ## Configuration
 
 ```bash
-ros2 launch schunk_fts_driver driver.launch.py host:=192.168.0.100 port:=82 streaming_port:=54843 output_rate_hz:=1000
+ros2 launch schunk_fts_driver driver.launch.py host:=192.168.0.100 port:=82 streaming_port:=54843 output_rate:=1000
 ```
 
-Supported `output_rate_hz` values are `1000`, `500`, `250`, `100`, and `8000`. The default is `1000` Hz.
+Supported `output_rate` values are `1000`, `500`, `250`, `100`, and `500_16`. The default is `1000`. In `500_16` mode, the sensor sends 500 UDP packets per second and each packet carries 16 sequential measurements with timestamps spread across the packet period.

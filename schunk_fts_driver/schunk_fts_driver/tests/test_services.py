@@ -17,6 +17,7 @@
 import pytest
 import rclpy
 from rclpy.executors import MultiThreadedExecutor
+from rclpy.qos import QoSProfile, ReliabilityPolicy
 from lifecycle_msgs.msg import Transition
 from std_srvs.srv import Trigger
 from schunk_fts_interfaces.srv import (  # type: ignore [attr-defined]
@@ -33,7 +34,7 @@ def service_client_node(ros2, lifecycle_interface):
     """Fixture to provide a node for service clients and ensure driver is active."""
     lifecycle_interface.change_state(Transition.TRANSITION_CONFIGURE)
     lifecycle_interface.change_state(Transition.TRANSITION_ACTIVATE)
-    node = rclpy.create_node("service_client_node")
+    node = rclpy.create_node(f"service_client_node_{time.time_ns()}")
     yield node
     node.destroy_node()
     # Ensure driver is deactivated and cleaned up after test
@@ -50,6 +51,19 @@ def call_service(node, client, request):
     future = client.call_async(request)
     rclpy.spin_until_future_complete(node, future, timeout_sec=5.0)
     return future.result()
+
+
+def data_qos(depth: int) -> QoSProfile:
+    return QoSProfile(depth=depth, reliability=ReliabilityPolicy.BEST_EFFORT)
+
+
+def wait_for_future(future, timeout_sec: float = 5.0):
+    deadline = time.monotonic() + timeout_sec
+    while time.monotonic() < deadline:
+        if future.done():
+            return future.result()
+        time.sleep(0.005)
+    raise TimeoutError(f"Service response did not arrive within {timeout_sec:.1f}s")
 
 
 def test_tare_service(service_client_node):
@@ -152,7 +166,7 @@ def test_service_call_during_data_publishing(service_client_node, lifecycle_inte
         WrenchStamped,
         "/schunk/fts/data",
         partial(collect, messages=messages),
-        10,
+        data_qos(10),
     )
 
     # Start collecting data
@@ -206,9 +220,9 @@ def test_multiple_service_types_concurrently(service_client_node):
             req = Trigger.Request()
             future = tare_cli.call_async(req)
             # Use the shared executor to safely wait for the future to complete
-            executor.spin_until_future_complete(future, timeout_sec=5.0)
+            result = wait_for_future(future)
             with lock:
-                results["tare"].append(future.result())
+                results["tare"].append(result)
         except Exception as e:
             with lock:
                 errors.append(("tare", e))
@@ -217,9 +231,9 @@ def test_multiple_service_types_concurrently(service_client_node):
         try:
             req = Trigger.Request()
             future = reset_cli.call_async(req)
-            executor.spin_until_future_complete(future, timeout_sec=5.0)
+            result = wait_for_future(future)
             with lock:
-                results["reset"].append(future.result())
+                results["reset"].append(result)
         except Exception as e:
             with lock:
                 errors.append(("reset", e))
@@ -229,9 +243,9 @@ def test_multiple_service_types_concurrently(service_client_node):
             req = SendCommand.Request()
             req.command_id = "12"  # Tare command
             future = cmd_cli.call_async(req)
-            executor.spin_until_future_complete(future, timeout_sec=5.0)
+            result = wait_for_future(future)
             with lock:
-                results["command"].append(future.result())
+                results["command"].append(result)
         except Exception as e:
             with lock:
                 errors.append(("command", e))
@@ -539,9 +553,9 @@ def test_tool_and_filter_services_concurrent(service_client_node):
             req = SelectToolSetting.Request()
             req.tool_index = 1
             future = tool_cli.call_async(req)
-            executor.spin_until_future_complete(future, timeout_sec=5.0)
+            result = wait_for_future(future)
             with lock:
-                results["tool"].append(future.result())
+                results["tool"].append(result)
         except Exception as e:
             with lock:
                 errors.append(("tool", e))
@@ -551,9 +565,9 @@ def test_tool_and_filter_services_concurrent(service_client_node):
             req = SelectNoiseFilter.Request()
             req.filter_number = 2
             future = filter_cli.call_async(req)
-            executor.spin_until_future_complete(future, timeout_sec=5.0)
+            result = wait_for_future(future)
             with lock:
-                results["filter"].append(future.result())
+                results["filter"].append(result)
         except Exception as e:
             with lock:
                 errors.append(("filter", e))

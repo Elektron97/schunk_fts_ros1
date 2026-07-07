@@ -68,8 +68,8 @@ def test_protocol_packet_structure_is_correct():
     assert pytest.approx(decoded["fz"]) == data["fz"]
 
 
-def test_protocol_decodes_packaged_8000hz_packet():
-    """Test 500 Hz UDP packaged mode with 16 sequential 8 kHz samples."""
+def test_protocol_decodes_packaged_500_16_packet():
+    """Test 500 Hz UDP packaged mode with 16 sequential measurements."""
     packet = bytearray(b"\xFF\xFF")
     packet += struct.pack("<HHB", 123, 449, 7)
     for sample_index in range(16):

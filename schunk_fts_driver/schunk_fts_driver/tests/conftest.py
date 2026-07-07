@@ -117,7 +117,7 @@ else:
 
 class LifecycleInterface(object):
     def __init__(self):
-        self.node = Node("lifecycle_interface")
+        self.node = Node(f"lifecycle_interface_{time.time_ns()}")
         self.change_state_client = self.node.create_client(
             ChangeState, "/schunk/fts/change_state"
         )
@@ -131,28 +131,39 @@ class LifecycleInterface(object):
             raise TimeoutError("/schunk/fts/get_state service is not available")
 
     def change_state(self, transition_id):
-        req = ChangeState.Request()
-        req.transition.id = transition_id
-        future = self.change_state_client.call_async(req)
         timeout_sec = service_timeout_sec()
-        rclpy.spin_until_future_complete(self.node, future, timeout_sec=timeout_sec)
-        if not future.done():
-            raise TimeoutError(
-                f"Timed out waiting {timeout_sec:.1f}s for lifecycle "
-                f"transition {transition_id}"
-            )
-        return future.result()
+        last_error = None
+        for _ in range(2):
+            if not service_is_ready(self.change_state_client):
+                last_error = "service is not available"
+                continue
+            req = ChangeState.Request()
+            req.transition.id = transition_id
+            future = self.change_state_client.call_async(req)
+            rclpy.spin_until_future_complete(self.node, future, timeout_sec=timeout_sec)
+            if future.done():
+                return future.result()
+            last_error = f"no response within {timeout_sec:.1f}s"
+        raise TimeoutError(
+            f"Timed out waiting for lifecycle transition {transition_id}: {last_error}"
+        )
 
     def check_state(self, state_id):
-        req = GetState.Request()
-        future = self.get_state_client.call_async(req)
         timeout_sec = service_timeout_sec()
-        rclpy.spin_until_future_complete(self.node, future, timeout_sec=timeout_sec)
-        if not future.done():
-            raise TimeoutError(
-                f"Timed out waiting {timeout_sec:.1f}s for lifecycle state {state_id}"
-            )
-        return future.result().current_state.id == state_id
+        last_error = None
+        for _ in range(2):
+            if not service_is_ready(self.get_state_client):
+                last_error = "service is not available"
+                continue
+            req = GetState.Request()
+            future = self.get_state_client.call_async(req)
+            rclpy.spin_until_future_complete(self.node, future, timeout_sec=timeout_sec)
+            if future.done():
+                return future.result().current_state.id == state_id
+            last_error = f"no response within {timeout_sec:.1f}s"
+        raise TimeoutError(
+            f"Timed out waiting for lifecycle state {state_id}: {last_error}"
+        )
 
     def shutdown(self):
         """Properly shutdown the driver to inactive state."""

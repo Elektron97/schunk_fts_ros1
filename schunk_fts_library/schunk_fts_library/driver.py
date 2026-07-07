@@ -36,13 +36,44 @@ import struct
 
 OUTPUT_RATE_PARAMETER_INDEX = "1020"
 OUTPUT_RATE_PARAMETER_SUBINDEX = "00"
-OUTPUT_RATE_HZ_TO_PARAMETER_VALUE = {
-    1000: "00",
-    500: "01",
-    250: "02",
-    100: "03",
-    8000: "0a",
+SUPPORTED_OUTPUT_RATES = ("1000", "500", "250", "100", "500_16")
+
+
+@dataclass(frozen=True)
+class OutputRateMode:
+    output_rate: str
+    parameter_value: str
+    packet_rate_hz: int
+    sample_rate_hz: int
+    samples_per_packet: int
+
+    @property
+    def sample_period_ns(self) -> int:
+        return round(1_000_000_000 / self.sample_rate_hz)
+
+    @property
+    def packet_period_ns(self) -> int:
+        return self.sample_period_ns * self.samples_per_packet
+
+
+OUTPUT_RATE_TO_MODE = {
+    "1000": OutputRateMode("1000", "00", 1000, 1000, 1),
+    "500": OutputRateMode("500", "01", 500, 500, 1),
+    "250": OutputRateMode("250", "02", 250, 250, 1),
+    "100": OutputRateMode("100", "03", 100, 100, 1),
+    "500_16": OutputRateMode("500_16", "0a", 500, 8000, 16),
 }
+
+
+def _normalize_output_rate(output_rate: int | str) -> str:
+    normalized = str(output_rate)
+    if normalized not in OUTPUT_RATE_TO_MODE:
+        supported_rates = ", ".join(SUPPORTED_OUTPUT_RATES)
+        raise ValueError(
+            f"Unsupported output_rate {output_rate}. "
+            f"Supported output rates are: {supported_rates}"
+        )
+    return normalized
 
 
 @dataclass
@@ -89,26 +120,18 @@ class Driver(object):
         host: str = "192.168.0.100",
         port: int = 82,
         streaming_port: int = 54843,
-        output_rate_hz: int = 1000,
+        output_rate: int | str = 1000,
         streaming_source_host: str | None = None,
     ) -> None:
-        if output_rate_hz not in OUTPUT_RATE_HZ_TO_PARAMETER_VALUE:
-            supported_rates = ", ".join(
-                str(rate) for rate in sorted(OUTPUT_RATE_HZ_TO_PARAMETER_VALUE)
-            )
-            raise ValueError(
-                f"Unsupported output_rate_hz {output_rate_hz}. "
-                f"Supported rates are: {supported_rates}"
-            )
+        output_rate = _normalize_output_rate(output_rate)
 
         self.host = host
         self.port = port
         self.streaming_port = streaming_port
         self.streaming_source_host = streaming_source_host or host
-        self.output_rate_hz = output_rate_hz
-        self.output_rate_parameter_value = OUTPUT_RATE_HZ_TO_PARAMETER_VALUE[
-            output_rate_hz
-        ]
+        self.output_rate = output_rate
+        self.output_rate_mode = OUTPUT_RATE_TO_MODE[output_rate]
+        self.output_rate_parameter_value = self.output_rate_mode.parameter_value
         self.connection: Connection = Connection(host=host, port=port)
         self.ft_data: FTDataBuffer = FTDataBuffer()
         self.stream: Stream = Stream(
@@ -125,64 +148,67 @@ class Driver(object):
         self.last_producer_counter = -1
         self.producer_start_time = time.perf_counter()
         self._lock: Lock = Lock()
+        self._streaming_lock: Lock = Lock()
         self.reconnect_interval = 1.0  # seconds between reconnection attempts
         self.auto_reconnect = False
 
     def streaming_on(
         self, timeout_sec: float = 0.1, auto_reconnect: bool = True
     ) -> bool:
-        if self.is_streaming:
-            return True
-        if not isinstance(timeout_sec, float):
-            self.is_streaming = False
-            return False
-        if not self.connection.open():
-            self.is_streaming = False
-            return False
-
-        self.is_streaming = True
-        self.auto_reconnect = auto_reconnect
-        self.stream_update_thread = Thread(
-            target=asyncio.run,
-            args=(self._update(),),
-            daemon=True,
-        )
-        self.stream_update_thread.start()
-        max_duration = time.time() + timeout_sec
-        while not self.stream.is_open():
-            time.sleep(0.01)
-            if time.time() > max_duration:
+        with self._streaming_lock:
+            if self.is_streaming:
+                return True
+            if not isinstance(timeout_sec, float):
                 self.is_streaming = False
                 return False
-        nameasciistr = self.get_parameter(
-            index="0001", subindex="00"
-        ).param_value  # Product Name Parameter in ASCII
-        self.name = "".join(
-            [
-                chr(int(nameasciistr[i : i + 2], 16))
-                for i in range(0, len(nameasciistr), 2)
-            ]
-        ).strip(
-            "\x00"
-        )  # Convert hex to ASCII and strip null characters
-        self.hardware_id = self.get_parameter(
-            index="0001", subindex="03"
-        ).param_value  # Product ID Parameter
-        if not self._configure_output_rate():
-            self.is_streaming = False
-            self.auto_reconnect = False
-            self.connection.close()
-            return False
-        self.start_udp_stream()
-        return True
+            if not self.connection.open():
+                self.is_streaming = False
+                return False
+
+            self.is_streaming = True
+            self.auto_reconnect = auto_reconnect
+            self.stream_update_thread = Thread(
+                target=asyncio.run,
+                args=(self._update(),),
+                daemon=True,
+            )
+            self.stream_update_thread.start()
+            max_duration = time.time() + timeout_sec
+            while not self.stream.is_open():
+                time.sleep(0.01)
+                if time.time() > max_duration:
+                    self.is_streaming = False
+                    return False
+            nameasciistr = self.get_parameter(
+                index="0001", subindex="00"
+            ).param_value  # Product Name Parameter in ASCII
+            self.name = "".join(
+                [
+                    chr(int(nameasciistr[i : i + 2], 16))
+                    for i in range(0, len(nameasciistr), 2)
+                ]
+            ).strip(
+                "\x00"
+            )  # Convert hex to ASCII and strip null characters
+            self.hardware_id = self.get_parameter(
+                index="0001", subindex="03"
+            ).param_value  # Product ID Parameter
+            if not self._configure_output_rate():
+                self.is_streaming = False
+                self.auto_reconnect = False
+                self.connection.close()
+                return False
+            self.start_udp_stream()
+            return True
 
     def streaming_off(self) -> None:
-        self.stop_udp_stream()
-        self.auto_reconnect = False
-        self.is_streaming = False
-        if self.stream_update_thread.is_alive():
-            self.stream_update_thread.join()
-        self.connection.close()
+        with self._streaming_lock:
+            self.stop_udp_stream()
+            self.auto_reconnect = False
+            self.is_streaming = False
+            if self.stream_update_thread.is_alive():
+                self.stream_update_thread.join()
+            self.connection.close()
 
     def sample(self) -> FTData | None:
         if not self.is_streaming:

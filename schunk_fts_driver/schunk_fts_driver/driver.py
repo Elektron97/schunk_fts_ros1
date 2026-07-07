@@ -86,17 +86,19 @@ class Driver(Node):
         self.declare_parameter("host", "192.168.0.100")
         self.declare_parameter("port", 82)
         self.declare_parameter("streaming_port", 54843)
-        self.declare_parameter("output_rate_hz", 1000)
+        self.declare_parameter("output_rate", "1000")
 
-        output_rate_hz = int(self.get_parameter("output_rate_hz").value)
+        output_rate = str(self.get_parameter("output_rate").value)
         self.sensor: SensorDriver = SensorDriver(
             host=self.get_parameter("host").value,
             port=self.get_parameter("port").value,
             streaming_port=self.get_parameter("streaming_port").value,
-            output_rate_hz=output_rate_hz,
+            output_rate=output_rate,
         )
         self.ft_data_publisher: Publisher | None = None
         self.ft_state_publisher: Publisher | None = None
+        self._ft_data_publisher_handle: Publisher | None = None
+        self._ft_state_publisher_handle: Publisher | None = None
         self.publisher_lock: Lock = Lock()
         self.period: float = 0.0005  # sec
         self.thread: Thread = Thread()
@@ -125,10 +127,6 @@ class Driver(Node):
         return (counter - previous_counter - 1 + 65536) % 65536
 
     @staticmethod
-    def _sample_period_ns_for_rate(output_rate_hz: int) -> int:
-        return round(1_000_000_000 / output_rate_hz)
-
-    @staticmethod
     def _status_level_from_bits(bits: int) -> bytes:
         if bits & (1 << 3):
             return DiagnosticStatus.ERROR
@@ -148,11 +146,10 @@ class Driver(Node):
         data: FTData,
         base_counter: int,
         base_stamp_ns: int,
-        output_rate_hz: int,
+        sample_period_ns: int,
     ) -> int:
         sample_index = int(data.get("sample_index", 0))
         samples_per_packet = int(data.get("samples_per_packet", 1))
-        sample_period_ns = cls._sample_period_ns_for_rate(output_rate_hz)
         packet_period_ns = sample_period_ns * samples_per_packet
         counter_delta = (int(data["counter"]) - base_counter + 65536) % 65536
         return (
@@ -183,12 +180,14 @@ class Driver(Node):
             reliability=ReliabilityPolicy.BEST_EFFORT,
             durability=DurabilityPolicy.VOLATILE,
         )
-        self.ft_data_publisher = self.create_publisher(
-            msg_type=WrenchStamped,
-            topic="~/data",
-            qos_profile=sensor_data_qos,
-            callback_group=self.data_callback_group,
-        )
+        if self._ft_data_publisher_handle is None:
+            self._ft_data_publisher_handle = self.create_publisher(
+                msg_type=WrenchStamped,
+                topic="~/data",
+                qos_profile=sensor_data_qos,
+                callback_group=self.data_callback_group,
+            )
+        self.ft_data_publisher = self._ft_data_publisher_handle
 
         latching_qos = QoSProfile(
             history=HistoryPolicy.KEEP_LAST,
@@ -196,12 +195,14 @@ class Driver(Node):
             reliability=ReliabilityPolicy.RELIABLE,
             durability=DurabilityPolicy.TRANSIENT_LOCAL,
         )
-        self.ft_state_publisher = self.create_publisher(
-            msg_type=DiagnosticStatus,
-            topic="~/state",
-            qos_profile=latching_qos,
-            callback_group=self.state_callback_group,
-        )
+        if self._ft_state_publisher_handle is None:
+            self._ft_state_publisher_handle = self.create_publisher(
+                msg_type=DiagnosticStatus,
+                topic="~/state",
+                qos_profile=latching_qos,
+                callback_group=self.state_callback_group,
+            )
+        self.ft_state_publisher = self._ft_state_publisher_handle
 
         # Create services
         self.send_command_service = self.create_service(
@@ -259,9 +260,7 @@ class Driver(Node):
             self.thread.join()
 
         with self.publisher_lock:
-            self.destroy_publisher(self.ft_data_publisher)
             self.ft_data_publisher = None
-            self.destroy_publisher(self.ft_state_publisher)
             self.ft_state_publisher = None
 
         # Destroy services
@@ -301,7 +300,7 @@ class Driver(Node):
         data_msg.header.frame_id = self.get_name()
         state_msg.name = self.sensor.name
         state_msg.hardware_id = self.sensor.hardware_id
-        sample_period_ns = self._sample_period_ns_for_rate(self.sensor.output_rate_hz)
+        sample_period_ns = self.sensor.output_rate_mode.sample_period_ns
 
         while rclpy.ok() and not self.stop_event.is_set():
             samples = self.sensor.sample_batch()

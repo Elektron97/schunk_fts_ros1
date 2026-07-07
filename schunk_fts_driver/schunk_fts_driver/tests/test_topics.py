@@ -19,12 +19,17 @@ import time
 import rclpy
 from geometry_msgs.msg import WrenchStamped
 from diagnostic_msgs.msg import DiagnosticStatus
+from rclpy.qos import QoSProfile, ReliabilityPolicy
 from functools import partial
 import pytest
 from schunk_fts_driver.driver import Driver as RosDriver
 
 
-def test_packaged_8000hz_timestamp_spacing_helper():
+def _data_qos(depth: int) -> QoSProfile:
+    return QoSProfile(depth=depth, reliability=ReliabilityPolicy.BEST_EFFORT)
+
+
+def test_packaged_500_16_timestamp_spacing_helper():
     base_stamp_ns = 1_000_000_000
     samples = [
         {"counter": 100, "sample_index": sample_index, "samples_per_packet": 16}
@@ -37,7 +42,7 @@ def test_packaged_8000hz_timestamp_spacing_helper():
             sample,
             base_counter=100,
             base_stamp_ns=base_stamp_ns,
-            output_rate_hz=8000,
+            sample_period_ns=125_000,
         )
         for sample in samples
     ]
@@ -85,7 +90,7 @@ def test_driver_publishes_force_torque_data(lifecycle_interface):
         WrenchStamped,
         "/schunk/fts/data",
         partial(check_fields, messages=messages),
-        1,
+        _data_qos(1),
     )
 
     timeout = time.time() + 1.0
@@ -112,7 +117,7 @@ def test_data_publishing_rate(lifecycle_interface):
         WrenchStamped,
         "/schunk/fts/data",
         partial(collect_messages, messages=messages),
-        1000,
+        _data_qos(1000),
     )
 
     # Collect messages for a short duration
@@ -159,7 +164,7 @@ def test_no_data_published_when_inactive(lifecycle_interface):
         WrenchStamped,
         "/schunk/fts/data",
         partial(collect_messages, messages=messages),
-        10,
+        _data_qos(10),
     )
 
     # Wait and verify no messages are published
@@ -189,7 +194,7 @@ def test_data_publishing_stops_after_deactivate(lifecycle_interface):
         WrenchStamped,
         "/schunk/fts/data",
         partial(collect_messages_before, messages=messages_before),
-        10,
+        _data_qos(10),
     )
 
     # Collect some messages while active
@@ -208,7 +213,7 @@ def test_data_publishing_stops_after_deactivate(lifecycle_interface):
         WrenchStamped,
         "/schunk/fts/data",
         partial(collect_messages_before, messages=messages_after),
-        10,
+        _data_qos(10),
     )
 
     # Wait and verify no new messages
@@ -235,7 +240,7 @@ def test_message_counter_increments(lifecycle_interface):
         WrenchStamped,
         "/schunk/fts/data",
         partial(collect_messages, messages=messages),
-        10,
+        _data_qos(10),
     )
 
     # Collect messages
@@ -420,7 +425,7 @@ def test_frame_id_matches_node_name(lifecycle_interface):
         WrenchStamped,
         "/schunk/fts/data",
         partial(collect_messages, messages=messages),
-        1,
+        _data_qos(1),
     )
 
     timeout = time.time() + 0.5
@@ -461,19 +466,19 @@ def test_concurrent_subscribers(lifecycle_interface):
         WrenchStamped,
         "/schunk/fts/data",
         partial(collect_messages1, messages=messages1),
-        10,
+        _data_qos(10),
     )
     _ = driver.node.create_subscription(
         WrenchStamped,
         "/schunk/fts/data",
         partial(collect_messages2, messages=messages2),
-        10,
+        _data_qos(10),
     )
     _ = driver.node.create_subscription(
         WrenchStamped,
         "/schunk/fts/data",
         partial(collect_messages3, messages=messages3),
-        10,
+        _data_qos(10),
     )
 
     # Collect messages
@@ -515,7 +520,7 @@ def test_repeated_activation_cycles(lifecycle_interface):
             WrenchStamped,
             "/schunk/fts/data",
             partial(collect_messages, messages=messages),
-            10,
+            _data_qos(10),
         )
 
         # Collect messages
@@ -545,7 +550,7 @@ def test_wrench_data_fields_are_floats(lifecycle_interface):
         WrenchStamped,
         "/schunk/fts/data",
         partial(collect_messages, messages=messages),
-        1,
+        _data_qos(1),
     )
 
     timeout = time.time() + 0.5
@@ -583,7 +588,7 @@ def test_timestamp_increases_monotonically(lifecycle_interface):
         WrenchStamped,
         "/schunk/fts/data",
         partial(collect_messages, messages=messages),
-        100,
+        _data_qos(100),
     )
 
     # Collect many messages to test sequencing

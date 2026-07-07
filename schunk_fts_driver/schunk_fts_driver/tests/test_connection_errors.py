@@ -16,11 +16,16 @@
 
 import rclpy
 from rclpy.node import Node
+from rclpy.qos import QoSProfile, ReliabilityPolicy
 from lifecycle_msgs.msg import Transition, State
 import time
 from geometry_msgs.msg import WrenchStamped
 from functools import partial
 import pytest
+
+
+def data_qos(depth: int) -> QoSProfile:
+    return QoSProfile(depth=depth, reliability=ReliabilityPolicy.BEST_EFFORT)
 
 
 def test_connection_timeout_handling(sensor, lifecycle_interface):
@@ -63,7 +68,7 @@ def test_graceful_degradation_when_streaming_stops(sensor, lifecycle_interface):
         WrenchStamped,
         "/schunk/fts/data",
         partial(collect_messages, messages=messages),
-        10,
+        data_qos(10),
     )
 
     # Collect some messages to ensure streaming is working
@@ -191,7 +196,7 @@ def test_no_data_published_on_connection_loss(sensor, lifecycle_interface):
         WrenchStamped,
         "/schunk/fts/data",
         partial(collect_messages, messages=messages_before),
-        10,
+        data_qos(10),
     )
 
     # Verify data is being published
