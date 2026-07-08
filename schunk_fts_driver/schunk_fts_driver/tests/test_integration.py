@@ -570,6 +570,8 @@ def test_concurrent_operations_integration(sensor, lifecycle_interface):
     service_thread.join(timeout=10.0)
 
     # Gracefully shut down the executor and clean up resources
+    executor.remove_node(driver.node)
+    executor.remove_node(service_node)
     executor.shutdown()
     executor_thread.join(timeout=5.0)  # Ensure the executor thread has finished
     service_node.destroy_node()
@@ -582,5 +584,4 @@ def test_concurrent_operations_integration(sensor, lifecycle_interface):
     for result in service_results:
         assert result.success, "Service calls should succeed"
 
-    driver.change_state(Transition.TRANSITION_DEACTIVATE)
-    driver.change_state(Transition.TRANSITION_CLEANUP)
+    driver.shutdown()

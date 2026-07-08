@@ -130,6 +130,8 @@ def test_driver_supports_setting_parameters(driver):
     for param, expected in zip(parameters, future.result().values):
         assert param.value == expected
 
+    node.destroy_node()
+
 
 def test_valid_ip_address_formats(driver):
     """Test that various valid IP address formats are accepted."""
