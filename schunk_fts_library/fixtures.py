@@ -13,19 +13,4 @@
 # You should have received a copy of the GNU General Public License along with
 # this program. If not, see <https://www.gnu.org/licenses/>.
 # --------------------------------------------------------------------------------
-from pathlib import Path
-import sys
-
-
-def _prepend_python_package_paths() -> None:
-    package_root = Path(__file__).resolve().parent
-    workspace_root = package_root.parent
-    for package_dir in ("schunk_fts_driver", "schunk_fts_library"):
-        package_path = str(workspace_root / package_dir)
-        if package_path not in sys.path:
-            sys.path.insert(0, package_path)
-
-
-_prepend_python_package_paths()
-
-from schunk_fts_library.fixtures import sensor  # noqa: E402,F401
+from schunk_fts_library.schunk_fts_library.fixtures import *  # noqa: F401,F403

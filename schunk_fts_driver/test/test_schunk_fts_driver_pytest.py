@@ -26,6 +26,18 @@ class PytestSuite(unittest.TestCase):
             return
 
         package_root = Path(__file__).resolve().parents[1]
+        workspace_root = package_root.parent
         test_path = package_root / "schunk_fts_driver" / "tests"
-        result = subprocess.run([sys.executable, "-m", "pytest", str(test_path)])
+        env = os.environ.copy()
+        python_path = [
+            str(package_root),
+            str(workspace_root / "schunk_fts_library"),
+            env.get("PYTHONPATH", ""),
+        ]
+        env["PYTHONPATH"] = os.pathsep.join(path for path in python_path if path)
+        result = subprocess.run(
+            [sys.executable, "-m", "pytest", str(test_path)],
+            cwd=workspace_root,
+            env=env,
+        )
         self.assertEqual(result.returncode, 0)
