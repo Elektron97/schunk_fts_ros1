@@ -137,7 +137,7 @@ For high-frequency RT applications, consider using an industrial Ethernet varian
 
 A C++ subscriber is recommended as Python subscribers may have worse performance.
 
-**Output rate**: The Python library accepts `output_rate` values `1000`, `500`, `250`, `100`, and `500_16`. The `500_16` setting uses the sensor's 500 Hz UDP packaged mode with 16 sequential measurements per UDP packet.
+**Output rate**: The Python library accepts `output_rate` values `1000`, `500`, `250`, `100`, and `500_16`. The `500_16` setting uses the sensor's 500 Hz UDP packaged mode with 16 sequential measurements per UDP packet. In ROS, this setting changes the `/schunk/fts/data` message type from `geometry_msgs/WrenchStamped` to `schunk_fts_interfaces/WrenchStampedBatch`.
 
 **Wrong data**: Tare the sensor, check tool setting, verify status topic
 
@@ -147,7 +147,7 @@ A C++ subscriber is recommended as Python subscribers may have worse performance
 
 | Topic | Type | Description |
 |-------|------|-------------|
-| `/schunk/fts/data` | `geometry_msgs/WrenchStamped` | Force-torque measurements at the configured output rate |
+| `/schunk/fts/data` | `geometry_msgs/WrenchStamped` for `1000`, `500`, `250`, `100`; `schunk_fts_interfaces/WrenchStampedBatch` for `500_16` | Force-torque measurements. The topic type depends on `output_rate`; `500_16` publishes one 16-sample batch per 500 Hz UDP packet. |
 | `/schunk/fts/state` | `diagnostic_msgs/DiagnosticStatus` | Sensor status and diagnostics |
 
 ## Services

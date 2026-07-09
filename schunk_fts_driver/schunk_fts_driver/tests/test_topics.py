@@ -23,10 +23,32 @@ from rclpy.qos import QoSProfile, ReliabilityPolicy
 from functools import partial
 import pytest
 from schunk_fts_driver.driver import Driver as RosDriver
+from schunk_fts_interfaces.msg import WrenchStampedBatch  # type: ignore [attr-defined]
+
+
+OUTPUT_RATE_EXPECTATIONS = {
+    "1000": (WrenchStamped, 1000.0, 1),
+    "500": (WrenchStamped, 500.0, 1),
+    "250": (WrenchStamped, 250.0, 1),
+    "100": (WrenchStamped, 100.0, 1),
+    "500_16": (WrenchStampedBatch, 500.0, 16),
+}
 
 
 def _data_qos(depth: int) -> QoSProfile:
     return QoSProfile(depth=depth, reliability=ReliabilityPolicy.BEST_EFFORT)
+
+
+def _stamp_ns(msg) -> int:
+    return msg.header.stamp.sec * 1_000_000_000 + msg.header.stamp.nanosec
+
+
+class _CountingPublisher:
+    def __init__(self):
+        self.messages = []
+
+    def publish(self, msg) -> None:
+        self.messages.append(msg)
 
 
 def test_packaged_500_16_timestamp_spacing_helper():
@@ -51,6 +73,38 @@ def test_packaged_500_16_timestamp_spacing_helper():
     assert diffs == [125_000] * 16
 
 
+def test_packaged_500_16_publish_helper_publishes_one_batch_per_udp_packet():
+    driver = RosDriver.__new__(RosDriver)
+    driver._publish_sample_batches = True
+    driver.get_name = lambda: "fts"  # type: ignore[method-assign]
+    publisher = _CountingPublisher()
+    samples = [
+        (42, 7, sample_index, 16, 1, float(sample_index), 2.0, 3.0, 4.0, 5.0, 6.0)
+        for sample_index in range(16)
+    ]
+
+    driver._publish_samples(
+        publisher,
+        WrenchStamped(),
+        samples,
+        packet_stamp_ns=1_000_000_000,
+        sample_period_ns=125_000,
+    )
+
+    assert len(publisher.messages) == 1
+    msg = publisher.messages[0]
+    assert isinstance(msg, WrenchStampedBatch)
+    assert msg.packet_counter == 42
+    assert msg.packet_id == 7
+    assert msg.samples_per_packet == 16
+    assert len(msg.samples) == 16
+    assert [_stamp_ns(sample) for sample in msg.samples[:3]] == [
+        1_000_000_000,
+        1_000_125_000,
+        1_000_250_000,
+    ]
+
+
 def test_packet_gap_helper_ignores_expected_counter_sequence():
     assert RosDriver._packet_gap(previous_counter=-1, counter=10) == 0
     assert RosDriver._packet_gap(previous_counter=10, counter=11) == 0
@@ -66,6 +120,71 @@ def test_status_level_helper_matches_status_bits():
     assert RosDriver._status_level_from_bits(0x00000008) == DiagnosticStatus.ERROR
     assert RosDriver._status_level_from_bits(0x00000010) == DiagnosticStatus.WARN
     assert RosDriver._status_level_from_bits(0x00000020) == DiagnosticStatus.WARN
+
+
+@pytest.mark.parametrize("output_rate", ["1000", "500", "250", "100", "500_16"])
+def test_data_topic_matches_all_output_rates(lifecycle_interface, output_rate):
+    driver = lifecycle_interface
+    msg_type, expected_rate, expected_samples = OUTPUT_RATE_EXPECTATIONS[output_rate]
+    messages = []
+
+    def collect_messages(msg, messages: list) -> None:
+        messages.append(msg)
+
+    driver.change_state(Transition.TRANSITION_CONFIGURE)
+    driver.change_state(Transition.TRANSITION_ACTIVATE)
+
+    _ = driver.node.create_subscription(
+        msg_type,
+        "/schunk/fts/data",
+        partial(collect_messages, messages=messages),
+        _data_qos(2000),
+    )
+
+    start_time = time.time()
+    collection_duration = 1.25
+    timeout = start_time + collection_duration
+    while time.time() < timeout:
+        rclpy.spin_once(driver.node, timeout_sec=0.001)
+
+    actual_duration = time.time() - start_time
+
+    driver.change_state(Transition.TRANSITION_DEACTIVATE)
+    driver.change_state(Transition.TRANSITION_CLEANUP)
+
+    assert messages
+    measured_rate = len(messages) / actual_duration
+    tolerance = 0.55
+    assert (
+        expected_rate * (1 - tolerance)
+        <= measured_rate
+        <= expected_rate * (1 + tolerance)
+    ), (
+        f"{output_rate}: expected about {expected_rate:.0f} topic messages/s, "
+        f"measured {measured_rate:.1f}"
+    )
+
+    if output_rate == "500_16":
+        first_msg = messages[0]
+        assert isinstance(first_msg, WrenchStampedBatch)
+        assert first_msg.header.frame_id == "fts"
+        assert first_msg.samples_per_packet == expected_samples
+        assert len(first_msg.samples) == expected_samples
+        timestamps = [_stamp_ns(sample) for sample in first_msg.samples]
+        assert timestamps == sorted(timestamps)
+        diffs = [
+            timestamps[index] - timestamps[index - 1]
+            for index in range(1, len(timestamps))
+        ]
+        assert all(62_500 <= diff <= 187_500 for diff in diffs)
+        assert all(sample.header.frame_id == "fts" for sample in first_msg.samples)
+        assert pytest.approx(first_msg.samples[0].wrench.force.x) != 0.0
+    else:
+        first_msg = messages[0]
+        assert isinstance(first_msg, WrenchStamped)
+        assert first_msg.header.frame_id == "fts"
+        assert first_msg.header.stamp
+        assert pytest.approx(first_msg.wrench.force.x) != 0.0
 
 
 def test_driver_publishes_force_torque_data(lifecycle_interface):

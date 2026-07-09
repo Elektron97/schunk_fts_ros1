@@ -24,7 +24,7 @@ from geometry_msgs.msg import WrenchStamped
 from diagnostic_msgs.msg import DiagnosticStatus
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from schunk_fts_library.driver import Driver as SensorDriver
-from schunk_fts_library.utility import FTData
+from schunk_fts_library.utility import FTData, FTSample
 from threading import Lock
 from rclpy.publisher import Publisher
 from rclpy.service import Service
@@ -39,6 +39,7 @@ from schunk_fts_interfaces.srv import (  # type: ignore [attr-defined]
     SelectToolSetting,
     SelectNoiseFilter,
 )
+from schunk_fts_interfaces.msg import WrenchStampedBatch  # type: ignore [attr-defined]
 
 
 # Error codes from the Interface Control Document
@@ -119,6 +120,7 @@ class Driver(Node):
         self._is_sensor_ok: bool = False
         self._connection_lost: bool = False
         self._last_skip_warning_time: float = 0.0
+        self._publish_sample_batches: bool = output_rate == "500_16"
 
     @staticmethod
     def _packet_gap(previous_counter: int, counter: int) -> int:
@@ -158,6 +160,66 @@ class Driver(Node):
             + sample_index * sample_period_ns
         )
 
+    @staticmethod
+    def _set_stamp_from_ns(stamp, stamp_ns: int) -> None:
+        stamp.sec = stamp_ns // 1_000_000_000
+        stamp.nanosec = stamp_ns % 1_000_000_000
+
+    @classmethod
+    def _fill_wrench_stamped(
+        cls,
+        msg: WrenchStamped,
+        sample: FTSample,
+        stamp_ns: int,
+        frame_id: str,
+    ) -> WrenchStamped:
+        msg.header.frame_id = frame_id
+        cls._set_stamp_from_ns(msg.header.stamp, stamp_ns)
+        msg.wrench.force.x = sample[5]
+        msg.wrench.force.y = sample[6]
+        msg.wrench.force.z = sample[7]
+        msg.wrench.torque.x = sample[8]
+        msg.wrench.torque.y = sample[9]
+        msg.wrench.torque.z = sample[10]
+        return msg
+
+    def _publish_samples(
+        self,
+        data_publisher: Publisher,
+        data_msg: WrenchStamped,
+        samples: list[FTSample],
+        packet_stamp_ns: int,
+        sample_period_ns: int,
+    ) -> None:
+        frame_id = self.get_name()
+        if self._publish_sample_batches:
+            batch_msg = WrenchStampedBatch()
+            batch_msg.header.frame_id = frame_id
+            self._set_stamp_from_ns(batch_msg.header.stamp, packet_stamp_ns)
+            batch_msg.packet_counter = samples[0][0]
+            batch_msg.packet_id = samples[0][1]
+            batch_msg.samples_per_packet = samples[0][3]
+            batch_msg.samples = [
+                self._fill_wrench_stamped(
+                    WrenchStamped(),
+                    sample,
+                    packet_stamp_ns + sample[2] * sample_period_ns,
+                    frame_id,
+                )
+                for sample in samples
+            ]
+            data_publisher.publish(batch_msg)
+            return
+
+        for sample in samples:
+            self._fill_wrench_stamped(
+                data_msg,
+                sample,
+                packet_stamp_ns + sample[2] * sample_period_ns,
+                frame_id,
+            )
+            data_publisher.publish(data_msg)
+
     def on_configure(self, state: State) -> TransitionCallbackReturn:
         self.get_logger().debug("on_configure() is called.")
         self.sensor.streaming_on()
@@ -181,8 +243,11 @@ class Driver(Node):
             durability=DurabilityPolicy.VOLATILE,
         )
         if self._ft_data_publisher_handle is None:
+            data_msg_type = (
+                WrenchStampedBatch if self._publish_sample_batches else WrenchStamped
+            )
             self._ft_data_publisher_handle = self.create_publisher(
-                msg_type=WrenchStamped,
+                msg_type=data_msg_type,
                 topic="~/data",
                 qos_profile=sensor_data_qos,
                 callback_group=self.data_callback_group,
@@ -297,7 +362,6 @@ class Driver(Node):
     def _publish_data(self) -> None:
         data_msg = WrenchStamped()
         state_msg = DiagnosticStatus()
-        data_msg.header.frame_id = self.get_name()
         state_msg.name = self.sensor.name
         state_msg.hardware_id = self.sensor.hardware_id
         sample_period_ns = self.sensor.output_rate_mode.sample_period_ns
@@ -377,24 +441,14 @@ class Driver(Node):
                 packet_period_ns = sample_period_ns * samples_per_packet
                 counter_delta = (counter - self._base_counter + 65536) % 65536
                 packet_stamp_ns = self._base_stamp_ns + counter_delta * packet_period_ns
-                stamp = data_msg.header.stamp
-                wrench = data_msg.wrench
-                force = wrench.force
-                torque = wrench.torque
                 try:
-                    for sample in samples:
-                        current_stamp_ns = (
-                            packet_stamp_ns + sample[2] * sample_period_ns
-                        )
-                        stamp.sec = current_stamp_ns // 1_000_000_000
-                        stamp.nanosec = current_stamp_ns % 1_000_000_000
-                        force.x = sample[5]
-                        force.y = sample[6]
-                        force.z = sample[7]
-                        torque.x = sample[8]
-                        torque.y = sample[9]
-                        torque.z = sample[10]
-                        data_publisher.publish(data_msg)
+                    self._publish_samples(
+                        data_publisher,
+                        data_msg,
+                        samples,
+                        packet_stamp_ns,
+                        sample_period_ns,
+                    )
                 except Exception:
                     return
 

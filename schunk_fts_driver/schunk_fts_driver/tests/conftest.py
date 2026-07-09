@@ -86,8 +86,12 @@ def ros2():
 
 if launch_pytest is not None:
 
+    @pytest.fixture(scope="function")
+    def output_rate():
+        return "1000"
+
     @launch_pytest.fixture(scope="function")
-    def driver(request, ros2, sensor):
+    def driver(request, ros2, sensor, output_rate):
         host, port = sensor
 
         setup = IncludeLaunchDescription(
@@ -101,6 +105,7 @@ if launch_pytest is not None:
             launch_arguments={
                 "host": str(host),
                 "port": str(port),
+                "output_rate": str(output_rate),
             }.items(),
         )
         return LaunchDescription([setup, launch_pytest.actions.ReadyToTest()])

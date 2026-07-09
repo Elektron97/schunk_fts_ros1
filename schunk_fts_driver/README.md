@@ -41,7 +41,7 @@ ros2 lifecycle set /schunk/fts configure|activate|deactivate|cleanup
 
 | Topic | Type | Rate | Description |
 |-------|------|------|-------------|
-| `/schunk/fts/data` | `geometry_msgs/WrenchStamped` | Sensor output rate | Force-torque data; `500_16` publishes 16 timestamp-spaced messages per 500 Hz UDP packet |
+| `/schunk/fts/data` | `geometry_msgs/WrenchStamped` for `1000`, `500`, `250`, `100`; `schunk_fts_interfaces/WrenchStampedBatch` for `500_16` | Sensor output rate, or 500 Hz in `500_16` | Force-torque data. The topic type depends on `output_rate`; `500_16` publishes one message containing 16 timestamp-spaced samples per UDP packet. |
 | `/schunk/fts/state` | `diagnostic_msgs/DiagnosticStatus` | latched - published on change | Sensor status |
 
 ## Services
@@ -72,4 +72,6 @@ Auto-reconnects on power loss (100ms detection, 1s retry).
 ros2 launch schunk_fts_driver driver.launch.py host:=192.168.0.100 port:=82 streaming_port:=54843 output_rate:=1000
 ```
 
-Supported `output_rate` values are `1000`, `500`, `250`, `100`, and `500_16`. The default is `1000`. In `500_16` mode, the sensor sends 500 UDP packets per second and each packet carries 16 sequential measurements with timestamps spread across the packet period.
+Supported `output_rate` values are `1000`, `500`, `250`, `100`, and `500_16`. The default is `1000`.
+
+Changing `output_rate` can change the `/schunk/fts/data` message type. The normal modes (`1000`, `500`, `250`, `100`) publish `geometry_msgs/WrenchStamped`. In `500_16` mode, the sensor sends 500 UDP packets per second and each packet carries 16 sequential measurements, so the driver publishes `schunk_fts_interfaces/WrenchStampedBatch` at 500 Hz with timestamps spread across the packet period.
