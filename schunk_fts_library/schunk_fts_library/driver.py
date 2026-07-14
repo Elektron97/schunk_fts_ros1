@@ -128,7 +128,7 @@ class Driver(object):
         self.host = host
         self.port = port
         self.streaming_port = streaming_port
-        self.streaming_source_host = streaming_source_host or host
+        self.streaming_source_host = streaming_source_host
         self.output_rate = output_rate
         self.output_rate_mode = OUTPUT_RATE_TO_MODE[output_rate]
         self.output_rate_parameter_value = self.output_rate_mode.parameter_value

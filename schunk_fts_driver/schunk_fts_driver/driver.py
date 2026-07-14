@@ -19,7 +19,6 @@ import rclpy
 from rclpy.lifecycle import Node, State, TransitionCallbackReturn
 from rclpy.executors import MultiThreadedExecutor, ExternalShutdownException
 from rclpy.qos import QoSProfile, DurabilityPolicy, ReliabilityPolicy, HistoryPolicy
-from rcl_interfaces.msg import SetParametersResult
 from geometry_msgs.msg import WrenchStamped
 from diagnostic_msgs.msg import DiagnosticStatus
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
@@ -137,7 +136,7 @@ class Driver(Node):
             or bits & (1 << 2)
             or bits & (1 << 4)
             or bits & (1 << 5)
-            or not bits & (1 << 0)
+            or not (bits & (1 << 0))
         ):
             return DiagnosticStatus.WARN
         return DiagnosticStatus.OK
@@ -357,7 +356,7 @@ class Driver(Node):
 
     def on_shutdown(self, state: State) -> TransitionCallbackReturn:
         self.get_logger().debug("on_shutdown() is called.")
-        return SetParametersResult(successful=True)
+        return TransitionCallbackReturn.SUCCESS
 
     def _publish_data(self) -> None:
         data_msg = WrenchStamped()

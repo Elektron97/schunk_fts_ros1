@@ -113,11 +113,11 @@ def _measure_output_rate(host, port, output_rate):
         time.sleep(0.1)
 
 
-def test_driver_filters_udp_source_by_default_host():
+def test_driver_accepts_any_udp_source_by_default():
     driver = Driver(host="10.49.60.117")
 
-    assert driver.streaming_source_host == "10.49.60.117"
-    assert driver.stream.source_ip == "10.49.60.117"
+    assert driver.streaming_source_host is None
+    assert driver.stream.source_ip is None
 
 
 def test_driver_supports_explicit_udp_source_host():
