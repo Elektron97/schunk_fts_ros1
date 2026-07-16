@@ -26,5 +26,6 @@ from pathlib import Path
     "(https://github.com/ament/ament_lint/issues/527).",
 )
 def test_copyright():
-    rc = main(argv=["--verbose"])
+    package_root = Path(__file__).parents[2]
+    rc = main(argv=["--verbose", str(package_root)])
     assert rc == 0, "Found errors"

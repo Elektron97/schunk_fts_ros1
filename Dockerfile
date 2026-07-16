@@ -18,6 +18,7 @@ RUN apt-get update -qq && apt-get install -y --no-install-recommends \
     python3-rosdep \
     python3-rosinstall-generator \
     python3-vcstool \
+    ros-humble-launch-pytest \
     git \
     socat \
     && rm -rf /var/lib/apt/lists/*

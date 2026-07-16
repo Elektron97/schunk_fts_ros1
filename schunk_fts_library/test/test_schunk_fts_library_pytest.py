@@ -13,8 +13,19 @@
 # You should have received a copy of the GNU General Public License along with
 # this program. If not, see <https://www.gnu.org/licenses/>.
 # --------------------------------------------------------------------------------
-pytest_plugins = ["schunk_fts_library.fixtures"]
+import os
+from pathlib import Path
+import subprocess
+import sys
+import unittest
 
 
-def load_tests(loader, standard_tests, pattern):
-    return loader.suiteClass()
+class PytestSuite(unittest.TestCase):
+    def runTest(self):
+        if "PYTEST_CURRENT_TEST" in os.environ:
+            return
+
+        package_root = Path(__file__).resolve().parents[1]
+        test_path = package_root / "schunk_fts_library" / "tests"
+        result = subprocess.run([sys.executable, "-m", "pytest", str(test_path)])
+        self.assertEqual(result.returncode, 0)

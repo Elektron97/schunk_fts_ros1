@@ -7,7 +7,7 @@ package_name = "schunk_fts_driver"
 setup(
     name=package_name,
     version="0.0.0",
-    packages=find_packages(exclude=["test"]),
+    packages=find_packages(exclude=["test", "test.*", "tests", "*.tests", "*.tests.*"]),
     data_files=[
         ("share/ament_index/resource_index/packages", ["resource/" + package_name]),
         ("share/" + package_name, ["package.xml"]),
@@ -29,7 +29,7 @@ setup(
         "pathspec==1.1.1",
         "platformdirs==4.10.0",
         "pluggy==1.6.0",
-        "pytest==9.1.1",
+        "pytest==9.0.2",
         "pytest-repeat==0.9.4",
         "PyYAML==6.0.3",
         "requests==2.34.2",

@@ -13,11 +13,118 @@
 # You should have received a copy of the GNU General Public License along with
 # this program. If not, see <https://www.gnu.org/licenses/>.
 # --------------------------------------------------------------------------------
-from schunk_fts_library.driver import Driver
+from schunk_fts_library.driver import Driver, OUTPUT_RATE_TO_MODE
 from schunk_fts_library.utility import Connection
 import time
 import pytest
 import struct
+
+
+OUTPUT_RATES_UNDER_TEST = [1000, 500, 250, 100, "500_16"]
+DEFAULT_OUTPUT_RATE = 1000
+OUTPUT_RATE_MEASUREMENT_SEC = 1.25
+OUTPUT_RATE_WARMUP_SEC = 0.25
+OUTPUT_RATE_TOLERANCE = 0.25
+
+
+@pytest.mark.parametrize(
+    ("output_rate", "expected_enum", "expected_sample_rate", "expected_samples"),
+    [
+        (1000, "00", 1000, 1),
+        ("500", "01", 500, 1),
+        (250, "02", 250, 1),
+        (100, "03", 100, 1),
+        ("500_16", "0a", 8000, 16),
+    ],
+)
+def test_driver_accepts_supported_output_rates(
+    output_rate, expected_enum, expected_sample_rate, expected_samples
+):
+    driver = Driver(output_rate=output_rate)
+
+    assert driver.output_rate == str(output_rate)
+    assert driver.output_rate_parameter_value == expected_enum
+    assert driver.output_rate_mode.sample_rate_hz == expected_sample_rate
+    assert driver.output_rate_mode.samples_per_packet == expected_samples
+
+
+@pytest.mark.parametrize("output_rate", [0, 10, 499, 999, 2000, 8000, "8000"])
+def test_driver_rejects_unsupported_output_rates(output_rate):
+    with pytest.raises(ValueError, match="Unsupported output_rate"):
+        Driver(output_rate=output_rate)
+
+
+def test_driver_configures_output_rate_parameter(monkeypatch):
+    driver = Driver(output_rate="500_16")
+    calls = []
+
+    class Response:
+        error_code = "00"
+
+    def set_parameter(value: str, index: str, subindex: str = "00"):
+        calls.append((value, index, subindex))
+        return Response()
+
+    monkeypatch.setattr(driver, "set_parameter", set_parameter)
+
+    assert driver._configure_output_rate()
+    assert calls == [("0a", "1020", "00")]
+
+
+def _reset_sensor_to_default_output_rate(host, port):
+    driver = Driver(host=host, port=port, output_rate=DEFAULT_OUTPUT_RATE)
+    try:
+        assert driver._configure_output_rate()
+        response = driver.get_parameter(index="1020", subindex="00")
+        assert response.error_code == "00"
+        assert response.param_value == driver.output_rate_parameter_value
+    finally:
+        driver.connection.close()
+
+
+def _measure_output_rate(host, port, output_rate):
+    driver = Driver(host=host, port=port, output_rate=output_rate)
+    samples = 0
+    packets = 0
+    samples_per_packet = set()
+
+    try:
+        assert driver.streaming_on(timeout_sec=2.0, auto_reconnect=False)
+        time.sleep(OUTPUT_RATE_WARMUP_SEC)
+        driver.clear_samples()
+
+        start = time.perf_counter()
+        deadline = start + OUTPUT_RATE_MEASUREMENT_SEC
+        while time.perf_counter() < deadline:
+            batch = driver.sample_batch()
+            if batch is None:
+                continue
+            packets += 1
+            samples += len(batch)
+            samples_per_packet.add(batch[0][3])
+
+        elapsed = time.perf_counter() - start
+        return samples / elapsed, packets / elapsed, samples_per_packet
+    finally:
+        if driver.is_streaming:
+            driver.streaming_off()
+        else:
+            driver.connection.close()
+        time.sleep(0.1)
+
+
+def test_driver_accepts_any_udp_source_by_default():
+    driver = Driver(host="10.49.60.117")
+
+    assert driver.streaming_source_host is None
+    assert driver.stream.source_ip is None
+
+
+def test_driver_supports_explicit_udp_source_host():
+    driver = Driver(host="10.49.60.117", streaming_source_host="127.0.0.1")
+
+    assert driver.streaming_source_host == "127.0.0.1"
+    assert driver.stream.source_ip == "127.0.0.1"
 
 
 def test_driver_initializes_as_expected():
@@ -109,7 +216,12 @@ def test_driver_timeouts_when_streaming_fails():
 def test_driver_supports_sampling_force_torque_data(sensor, send_messages):
     HOST, PORT = sensor
     test_port = 8001
-    driver = Driver(host=HOST, port=PORT, streaming_port=test_port)
+    driver = Driver(
+        host=HOST,
+        port=PORT,
+        streaming_port=test_port,
+        streaming_source_host="127.0.0.1",
+    )
 
     # Not streaming
     assert driver.sample() is None
@@ -165,23 +277,62 @@ def test_driver_supports_sampling_force_torque_data(sensor, send_messages):
         time.sleep(0.1)
 
 
-@pytest.mark.skip()
 def test_driver_supports_sampling_at_different_rates(sensor):
     HOST, PORT = sensor
-    driver = Driver()
+    try:
+        for rate in OUTPUT_RATES_UNDER_TEST:
+            driver = Driver(host=HOST, port=PORT, output_rate=rate)
+            try:
+                assert driver.streaming_on(timeout_sec=2.0, auto_reconnect=False)
+                deadline = time.time() + 1.0
+                sample = None
+                while time.time() < deadline:
+                    sample = driver.sample()
+                    if sample is None:
+                        continue
+                    if rate != "500_16" or sample.get("samples_per_packet") == 16:
+                        break
 
-    # Test streaming at different rates
-    assert driver.streaming_on()
-    rates = [10, 100, 1000, 8000]
-    duration_sec = 1.0
+                assert sample is not None, f"No sample received at {rate} Hz"
+                if rate == "500_16":
+                    assert sample["samples_per_packet"] == 16
+                else:
+                    assert sample.get("samples_per_packet", 1) == 1
+            finally:
+                if driver.is_streaming:
+                    driver.streaming_off()
+                else:
+                    driver.connection.close()
+                time.sleep(0.1)
+    finally:
+        _reset_sensor_to_default_output_rate(HOST, PORT)
 
-    for rate in rates:
-        start = time.time()
-        previous_value = None
-        count = 0
-        while time.time() < start + duration_sec:
-            sample = driver.sample()
-            count += 1
-            assert sample != previous_value, f"rate: {rate}, count: {count}"
-            previous_value = sample
-            time.sleep(1.0 / rate)
+
+def test_driver_achieves_requested_output_rates(sensor):
+    HOST, PORT = sensor
+    try:
+        for rate in OUTPUT_RATES_UNDER_TEST:
+            mode = OUTPUT_RATE_TO_MODE[str(rate)]
+            sample_rate, packet_rate, samples_per_packet = _measure_output_rate(
+                HOST, PORT, rate
+            )
+
+            min_sample_rate = mode.sample_rate_hz * (1.0 - OUTPUT_RATE_TOLERANCE)
+            max_sample_rate = mode.sample_rate_hz * (1.0 + OUTPUT_RATE_TOLERANCE)
+            assert min_sample_rate <= sample_rate <= max_sample_rate, (
+                f"{rate}: expected {mode.sample_rate_hz} samples/s, "
+                f"measured {sample_rate:.1f} samples/s "
+                f"({packet_rate:.1f} packets/s)"
+            )
+
+            min_packet_rate = mode.packet_rate_hz * (1.0 - OUTPUT_RATE_TOLERANCE)
+            max_packet_rate = mode.packet_rate_hz * (1.0 + OUTPUT_RATE_TOLERANCE)
+            assert min_packet_rate <= packet_rate <= max_packet_rate, (
+                f"{rate}: expected {mode.packet_rate_hz} packets/s, "
+                f"measured {packet_rate:.1f} packets/s "
+                f"({sample_rate:.1f} samples/s)"
+            )
+
+            assert samples_per_packet == {mode.samples_per_packet}
+    finally:
+        _reset_sensor_to_default_output_rate(HOST, PORT)

@@ -49,7 +49,7 @@ def test_performance_data_acquisition_rate(sensor):
     actual_rate = sample_count / elapsed_time
 
     # Sensor should provide at least 100 Hz (typical minimum)
-    # Real sensor can do up to 8000 Hz
+    # Packaged 500_16 mode provides 16 measurements per UDP packet.
     assert actual_rate >= 100, f"Rate too low: {actual_rate:.2f} Hz"
 
     # Verify samples are unique (not duplicates)

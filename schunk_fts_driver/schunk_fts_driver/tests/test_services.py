@@ -17,6 +17,7 @@
 import pytest
 import rclpy
 from rclpy.executors import MultiThreadedExecutor
+from rclpy.qos import QoSProfile, ReliabilityPolicy
 from lifecycle_msgs.msg import Transition
 from std_srvs.srv import Trigger
 from schunk_fts_interfaces.srv import (  # type: ignore [attr-defined]
@@ -25,6 +26,7 @@ from schunk_fts_interfaces.srv import (  # type: ignore [attr-defined]
     SelectNoiseFilter,
 )
 import threading
+import time
 
 
 @pytest.fixture(scope="function")
@@ -32,7 +34,7 @@ def service_client_node(ros2, lifecycle_interface):
     """Fixture to provide a node for service clients and ensure driver is active."""
     lifecycle_interface.change_state(Transition.TRANSITION_CONFIGURE)
     lifecycle_interface.change_state(Transition.TRANSITION_ACTIVATE)
-    node = rclpy.create_node("service_client_node")
+    node = rclpy.create_node(f"service_client_node_{time.time_ns()}")
     yield node
     node.destroy_node()
     # Ensure driver is deactivated and cleaned up after test
@@ -49,6 +51,19 @@ def call_service(node, client, request):
     future = client.call_async(request)
     rclpy.spin_until_future_complete(node, future, timeout_sec=5.0)
     return future.result()
+
+
+def data_qos(depth: int) -> QoSProfile:
+    return QoSProfile(depth=depth, reliability=ReliabilityPolicy.BEST_EFFORT)
+
+
+def wait_for_future(future, timeout_sec: float = 5.0):
+    deadline = time.monotonic() + timeout_sec
+    while time.monotonic() < deadline:
+        if future.done():
+            return future.result()
+        time.sleep(0.005)
+    raise TimeoutError(f"Service response did not arrive within {timeout_sec:.1f}s")
 
 
 def test_tare_service(service_client_node):
@@ -98,60 +113,17 @@ def test_send_command_service_fail(service_client_node):
 
 def test_concurrent_tare_service_calls(service_client_node):
     """Test multiple concurrent tare service calls."""
-    # Use a thread-safe executor to manage all callbacks for the node.
-    executor = MultiThreadedExecutor()
-    executor.add_node(service_client_node)
-
-    # Run the executor in a background thread. This thread will now handle all
-    # service responses for the service_client_node.
-    executor_thread = threading.Thread(target=executor.spin, daemon=True)
-    executor_thread.start()
-
     cli = service_client_node.create_client(Trigger, "/schunk/fts/tare")
     assert cli.wait_for_service(timeout_sec=5.0)
 
-    results = []
-    errors = []
-    # Using a lock is good practice when multiple threads modify a shared list.
-    lock = threading.Lock()
+    futures = [cli.call_async(Trigger.Request()) for _ in range(3)]
+    timeout = time.time() + 5.0
+    while time.time() < timeout and not all(future.done() for future in futures):
+        rclpy.spin_once(service_client_node, timeout_sec=0.01)
 
-    def call_tare():
-        """This function will be run by each thread."""
-        try:
-            req = Trigger.Request()
-            future = cli.call_async(req)
+    results = [future.result() for future in futures if future.done()]
 
-            executor.spin_until_future_complete(future, timeout_sec=5.0)
-
-            result = future.result()
-            with lock:
-                if result:
-                    results.append(result)
-                else:
-                    errors.append("Service call timed out and returned None.")
-        except Exception as e:
-            with lock:
-                errors.append(e)
-
-    # Launch 3 concurrent calls
-    threads = []
-    for _ in range(3):
-        t = threading.Thread(target=call_tare)
-        threads.append(t)
-        t.start()
-
-    # Wait for all threads to complete
-    for t in threads:
-        t.join(timeout=10.0)
-
-    # Clean up the executor
-    executor.shutdown()
-    executor_thread.join()
-
-    assert len(errors) == 0, f"Concurrent calls should not cause errors: {errors}"
-    assert (
-        len(results) == 3
-    ), f"All concurrent calls should complete, but only {len(results)} did."
+    assert len(results) == 3
 
     # All should succeed
     for result in results:
@@ -194,11 +166,12 @@ def test_service_call_during_data_publishing(service_client_node, lifecycle_inte
         WrenchStamped,
         "/schunk/fts/data",
         partial(collect, messages=messages),
-        10,
+        data_qos(10),
     )
 
     # Start collecting data
-    for _ in range(10):
+    timeout = time.time() + 3.0
+    while time.time() < timeout and len(messages) == 0:
         rclpy.spin_once(lifecycle_interface.node, timeout_sec=0.001)
 
     initial_count = len(messages)
@@ -212,7 +185,8 @@ def test_service_call_during_data_publishing(service_client_node, lifecycle_inte
     assert result.success
 
     # Data should continue after service call
-    for _ in range(10):
+    timeout = time.time() + 3.0
+    while time.time() < timeout and len(messages) <= initial_count:
         rclpy.spin_once(lifecycle_interface.node, timeout_sec=0.001)
 
     assert len(messages) > initial_count, "Data should continue after service call"
@@ -246,9 +220,9 @@ def test_multiple_service_types_concurrently(service_client_node):
             req = Trigger.Request()
             future = tare_cli.call_async(req)
             # Use the shared executor to safely wait for the future to complete
-            executor.spin_until_future_complete(future, timeout_sec=5.0)
+            result = wait_for_future(future)
             with lock:
-                results["tare"].append(future.result())
+                results["tare"].append(result)
         except Exception as e:
             with lock:
                 errors.append(("tare", e))
@@ -257,9 +231,9 @@ def test_multiple_service_types_concurrently(service_client_node):
         try:
             req = Trigger.Request()
             future = reset_cli.call_async(req)
-            executor.spin_until_future_complete(future, timeout_sec=5.0)
+            result = wait_for_future(future)
             with lock:
-                results["reset"].append(future.result())
+                results["reset"].append(result)
         except Exception as e:
             with lock:
                 errors.append(("reset", e))
@@ -269,9 +243,9 @@ def test_multiple_service_types_concurrently(service_client_node):
             req = SendCommand.Request()
             req.command_id = "12"  # Tare command
             future = cmd_cli.call_async(req)
-            executor.spin_until_future_complete(future, timeout_sec=5.0)
+            result = wait_for_future(future)
             with lock:
-                results["command"].append(future.result())
+                results["command"].append(result)
         except Exception as e:
             with lock:
                 errors.append(("command", e))
@@ -579,9 +553,9 @@ def test_tool_and_filter_services_concurrent(service_client_node):
             req = SelectToolSetting.Request()
             req.tool_index = 1
             future = tool_cli.call_async(req)
-            executor.spin_until_future_complete(future, timeout_sec=5.0)
+            result = wait_for_future(future)
             with lock:
-                results["tool"].append(future.result())
+                results["tool"].append(result)
         except Exception as e:
             with lock:
                 errors.append(("tool", e))
@@ -591,9 +565,9 @@ def test_tool_and_filter_services_concurrent(service_client_node):
             req = SelectNoiseFilter.Request()
             req.filter_number = 2
             future = filter_cli.call_async(req)
-            executor.spin_until_future_complete(future, timeout_sec=5.0)
+            result = wait_for_future(future)
             with lock:
-                results["filter"].append(future.result())
+                results["filter"].append(result)
         except Exception as e:
             with lock:
                 errors.append(("filter", e))

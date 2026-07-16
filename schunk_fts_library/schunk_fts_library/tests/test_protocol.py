@@ -68,6 +68,60 @@ def test_protocol_packet_structure_is_correct():
     assert pytest.approx(decoded["fz"]) == data["fz"]
 
 
+def test_protocol_decodes_packaged_500_16_packet():
+    """Test 500 Hz UDP packaged mode with 16 sequential measurements."""
+    packet = bytearray(b"\xFF\xFF")
+    packet += struct.pack("<HHB", 123, 449, 7)
+    for sample_index in range(16):
+        packet += struct.pack(
+            "<I ffffff",
+            0x00000001,
+            float(sample_index),
+            float(sample_index + 1),
+            float(sample_index + 2),
+            float(sample_index + 3),
+            float(sample_index + 4),
+            float(sample_index + 5),
+        )
+
+    samples = FTDataBuffer.decode_packet(packet)
+
+    assert len(packet) == 455
+    assert len(samples) == 16
+    assert samples[0]["counter"] == 123
+    assert samples[0]["payload"] == 449
+    assert samples[0]["id"] == 7
+    assert samples[0]["sample_index"] == 0
+    assert samples[0]["samples_per_packet"] == 16
+    assert pytest.approx(samples[0]["fx"]) == 0.0
+    assert samples[15]["sample_index"] == 15
+    assert pytest.approx(samples[15]["fx"]) == 15.0
+    assert pytest.approx(samples[15]["tz"]) == 20.0
+
+
+def test_protocol_decode_returns_first_sample_for_backward_compatibility():
+    packet = bytearray(b"\xFF\xFF")
+    packet += struct.pack("<HHB", 321, 449, 9)
+    for sample_index in range(16):
+        packet += struct.pack(
+            "<I ffffff",
+            0x00000001,
+            float(sample_index),
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+        )
+
+    sample = FTDataBuffer.decode(packet)
+
+    assert sample["counter"] == 321
+    assert sample["id"] == 9
+    assert sample["sample_index"] == 0
+    assert sample["samples_per_packet"] == 16
+
+
 def test_protocol_handles_endianness_correctly():
     """Test little-endian byte order handling."""
     # Test counter field (uint16)

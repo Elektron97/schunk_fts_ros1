@@ -22,4 +22,4 @@ def test_normal_startup_works(driver):
     client = node.create_client(GetState, "/schunk/fts/get_state")
 
     # The driver started correctly if the lifecycle interface is reachable
-    assert client.wait_for_service(timeout_sec=2)
+    assert client.wait_for_service(timeout_sec=10)

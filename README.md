@@ -20,11 +20,11 @@
 
 ---
 
-A ROS2 driver for SCHUNK force-torque sensors with 1000 Hz data streaming, automatic reconnection, and lifecycle management. Works with SCHUNK FT-Sensors with Ethernet Interface Box (FTS IFB-EN Ident.-Number 1651726 or FTS IFB-EN-IP67 Ident.-Number 1651748).
+A ROS2 driver for SCHUNK force-torque sensors with configurable UDP data streaming, automatic reconnection, and lifecycle management. Works with SCHUNK FT-Sensors with Ethernet Interface Box (FTS IFB-EN Ident.-Number 1651726 or FTS IFB-EN-IP67 Ident.-Number 1651748).
 
 ## Features
 
-- 1000 Hz force-torque data streaming via UDP
+- Configurable force-torque data streaming via UDP: 1000, 500, 250, 100, or 500_16 packaged mode
 - Automatic reconnection e.g. on power loss
 - ROS2 lifecycle node with controlled state transitions
 - Tare operations and tool settings (0-3)
@@ -71,6 +71,24 @@ cd schunk_fts_dummy && cargo run  # Terminal 1
 ros2 launch schunk_fts_driver driver.launch.py host:=127.0.0.1 port:=8082  # Terminal 2
 ```
 
+#### Changing the ROS Version (Devcontainer)
+
+The repository ships with three Dockerfiles — one per supported ROS 2 distribution:
+
+| File | ROS 2 distro |
+|------|-------------|
+| `Dockerfile.humble` | Humble Hawksbill |
+| `Dockerfile.jazzy` | Jazzy Jalisco |
+| `Dockerfile.lyrical` | Lyrical Llama |
+
+To switch, open [.devcontainer/devcontainer.json](.devcontainer/devcontainer.json) and change the `dockerFile` value:
+
+```json
+"dockerFile": "../Dockerfile.jazzy"
+```
+
+Then rebuild the container: **Ctrl+Shift+P → Dev Containers: Rebuild Container**.
+
 #### Test
 Tests require either a connected real sensor or a running simulator. Tests will automatically detect which is connected. Running both at the same time is not recommended. IP-addresses can be adjusted in [fixtures.py](schunk_fts_library/schunk_fts_library/fixtures.py).
 ```bash
@@ -115,7 +133,11 @@ ros2 lifecycle set /schunk/fts activate
 **Cannot connect**: Check `ping 192.168.0.100`, verify sensor is powered, check firewall (TCP:82, UDP:54843)
 
 **Low rate**: Check CPU load, network quality, ensure driver is ACTIVE
-For high-frequency RT applications, consider using a industrial Ethernet variant of the sensor as they support 8000 Hz.
+For high-frequency RT applications, consider using an industrial Ethernet variant of the sensor.
+
+A C++ subscriber is recommended as Python subscribers may have worse performance.
+
+**Output rate**: The Python library accepts `output_rate` values `1000`, `500`, `250`, `100`, and `500_16`. The `500_16` setting uses the sensor's 500 Hz UDP packaged mode with 16 sequential measurements per UDP packet. In ROS, this setting changes the `/schunk/fts/data` message type from `geometry_msgs/WrenchStamped` to `schunk_fts_interfaces/WrenchStampedBatch`.
 
 **Wrong data**: Tare the sensor, check tool setting, verify status topic
 
@@ -125,7 +147,7 @@ For high-frequency RT applications, consider using a industrial Ethernet variant
 
 | Topic | Type | Description |
 |-------|------|-------------|
-| `/schunk/fts/data` | `geometry_msgs/WrenchStamped` | Force-torque measurements at 1000 Hz |
+| `/schunk/fts/data` | `geometry_msgs/WrenchStamped` for `1000`, `500`, `250`, `100`; `schunk_fts_interfaces/WrenchStampedBatch` for `500_16` | Force-torque measurements. The topic type depends on `output_rate`; `500_16` publishes one 16-sample batch per 500 Hz UDP packet. |
 | `/schunk/fts/state` | `diagnostic_msgs/DiagnosticStatus` | Sensor status and diagnostics |
 
 ## Services

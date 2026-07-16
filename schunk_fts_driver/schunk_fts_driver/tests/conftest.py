@@ -15,14 +15,66 @@
 # --------------------------------------------------------------------------------
 
 import pytest
+import os
 import rclpy
+import signal
+import threading
+import time
 from launch import LaunchDescription  # type: ignore [attr-defined]
 from launch.actions import IncludeLaunchDescription
 from launch.substitutions import PathJoinSubstitution
 from launch_ros.substitutions import FindPackageShare
-import launch_pytest
 from lifecycle_msgs.srv import ChangeState, GetState
 from rclpy.node import Node
+
+try:
+    import launch_pytest
+except ModuleNotFoundError:
+    launch_pytest = None
+
+
+def _test_timeout_sec():
+    return float(os.getenv("SCHUNK_FTS_TEST_TIMEOUT_SEC", "60"))
+
+
+@pytest.hookimpl(hookwrapper=True)
+def pytest_runtest_call(item):
+    timeout_sec = _test_timeout_sec()
+    if (
+        timeout_sec <= 0
+        or not hasattr(signal, "SIGALRM")
+        or threading.current_thread() is not threading.main_thread()
+    ):
+        yield
+        return
+
+    def timeout_handler(signum, frame):
+        raise TimeoutError(f"{item.nodeid} exceeded {timeout_sec:.1f}s")
+
+    previous_handler = signal.getsignal(signal.SIGALRM)
+    signal.signal(signal.SIGALRM, timeout_handler)
+    previous_timer = signal.setitimer(signal.ITIMER_REAL, timeout_sec)
+    try:
+        yield
+    finally:
+        signal.setitimer(signal.ITIMER_REAL, previous_timer[0], previous_timer[1])
+        signal.signal(signal.SIGALRM, previous_handler)
+
+
+def service_is_ready(client, timeout_sec=None):
+    timeout_sec = float(
+        timeout_sec or os.getenv("SCHUNK_FTS_SERVICE_TIMEOUT_SEC", "10")
+    )
+    deadline = time.monotonic() + timeout_sec
+    while time.monotonic() < deadline:
+        remaining = deadline - time.monotonic()
+        if client.wait_for_service(timeout_sec=min(0.25, max(0.0, remaining))):
+            return True
+    return False
+
+
+def service_timeout_sec():
+    return float(os.getenv("SCHUNK_FTS_SERVICE_TIMEOUT_SEC", "10"))
 
 
 @pytest.fixture(scope="module")
@@ -32,29 +84,45 @@ def ros2():
     rclpy.shutdown()
 
 
-@launch_pytest.fixture(scope="function")
-def driver(request, ros2, sensor):
-    host, port = sensor
+if launch_pytest is not None:
 
-    setup = IncludeLaunchDescription(
-        PathJoinSubstitution(
-            [
-                FindPackageShare("schunk_fts_driver"),
-                "launch",
-                "driver.launch.py",
-            ]
-        ),
-        launch_arguments={
-            "host": str(host),
-            "port": str(port),
-        }.items(),
-    )
-    return LaunchDescription([setup, launch_pytest.actions.ReadyToTest()])
+    @pytest.fixture(scope="function")
+    def output_rate():
+        return "1000"
+
+    @launch_pytest.fixture(scope="function")
+    def driver(request, ros2, sensor, output_rate):
+        host, port = sensor
+
+        setup = IncludeLaunchDescription(
+            PathJoinSubstitution(
+                [
+                    FindPackageShare("schunk_fts_driver"),
+                    "launch",
+                    "driver.launch.py",
+                ]
+            ),
+            launch_arguments={
+                "host": str(host),
+                "port": str(port),
+                "output_rate": str(output_rate),
+            }.items(),
+        )
+        return LaunchDescription([setup, launch_pytest.actions.ReadyToTest()])
+
+else:
+
+    @pytest.fixture(scope="function")
+    def driver():
+        pytest.skip(
+            "launch_pytest is required for launch-based driver tests. "
+            "Install the ROS launch_pytest package for this ROS distribution."
+        )
 
 
 class LifecycleInterface(object):
     def __init__(self):
-        self.node = Node("lifecycle_interface")
+        self.node = Node(f"lifecycle_interface_{time.time_ns()}")
         self.change_state_client = self.node.create_client(
             ChangeState, "/schunk/fts/change_state"
         )
@@ -62,41 +130,69 @@ class LifecycleInterface(object):
             GetState, "/schunk/fts/get_state"
         )
 
-        self.change_state_client.wait_for_service(timeout_sec=2)
-        self.get_state_client.wait_for_service(timeout_sec=2)
+        if not service_is_ready(self.change_state_client):
+            raise TimeoutError("/schunk/fts/change_state service is not available")
+        if not service_is_ready(self.get_state_client):
+            raise TimeoutError("/schunk/fts/get_state service is not available")
 
     def change_state(self, transition_id):
-        req = ChangeState.Request()
-        req.transition.id = transition_id
-        future = self.change_state_client.call_async(req)
-        rclpy.spin_until_future_complete(self.node, future)
-        return future.result()
+        timeout_sec = service_timeout_sec()
+        last_error = None
+        for _ in range(2):
+            if not service_is_ready(self.change_state_client):
+                last_error = "service is not available"
+                continue
+            req = ChangeState.Request()
+            req.transition.id = transition_id
+            future = self.change_state_client.call_async(req)
+            rclpy.spin_until_future_complete(self.node, future, timeout_sec=timeout_sec)
+            if future.done():
+                return future.result()
+            last_error = f"no response within {timeout_sec:.1f}s"
+        raise TimeoutError(
+            f"Timed out waiting for lifecycle transition {transition_id}: {last_error}"
+        )
 
     def check_state(self, state_id):
-        req = GetState.Request()
-        future = self.get_state_client.call_async(req)
-        rclpy.spin_until_future_complete(self.node, future)
-        return future.result().current_state.id == state_id
+        timeout_sec = service_timeout_sec()
+        last_error = None
+        for _ in range(2):
+            if not service_is_ready(self.get_state_client):
+                last_error = "service is not available"
+                continue
+            req = GetState.Request()
+            future = self.get_state_client.call_async(req)
+            rclpy.spin_until_future_complete(self.node, future, timeout_sec=timeout_sec)
+            if future.done():
+                return future.result().current_state.id == state_id
+            last_error = f"no response within {timeout_sec:.1f}s"
+        raise TimeoutError(
+            f"Timed out waiting for lifecycle state {state_id}: {last_error}"
+        )
 
     def shutdown(self):
         """Properly shutdown the driver to inactive state."""
-        from lifecycle_msgs.msg import Transition
+        from lifecycle_msgs.msg import State, Transition
 
-        # Transition to inactive if not already there
         try:
-            self.change_state(Transition.TRANSITION_DEACTIVATE)
+            if self.check_state(State.PRIMARY_STATE_ACTIVE):
+                self.change_state(Transition.TRANSITION_DEACTIVATE)
         except Exception:
-            pass  # May already be inactive
-        # Then cleanup
+            pass
+
         try:
-            self.change_state(Transition.TRANSITION_CLEANUP)
+            if self.check_state(State.PRIMARY_STATE_INACTIVE):
+                self.change_state(Transition.TRANSITION_CLEANUP)
         except Exception:
-            pass  # May already be unconfigured
+            pass
 
 
 @pytest.fixture(scope="function")
 def lifecycle_interface(driver):
-    return LifecycleInterface()
+    interface = LifecycleInterface()
+    yield interface
+    interface.shutdown()
+    interface.node.destroy_node()
 
 
 class MessageSubscriber(Node):
@@ -130,6 +226,7 @@ def message_subscriber_factory(ros2):
 def pytest_terminal_summary(terminalreporter, exitstatus, config):
     if hasattr(config, "sensor_ip"):
         print("\n=== Sensor Summary ===")
+        print(f"Sensor kind: {config.sensor_kind}")
         print(f"Sensor used: {config.sensor_ip}")
         print(f"Port used: {config.sensor_port}")
         print("======================\n")

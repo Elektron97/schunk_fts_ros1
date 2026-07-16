@@ -135,9 +135,9 @@ def test_data_buffer_concurrent_put_and_get():
     assert not cons_thread.is_alive()
 
 
-def test_stream_concurrent_is_open_calls(send_messages):
+def test_stream_concurrent_is_open_calls(unused_udp_port):
     """Test concurrent is_open() calls don't cause race conditions."""
-    stream = Stream(port=8002)
+    stream = Stream(port=unused_udp_port)
     num_threads = 20
     iterations = 50
     barrier = Barrier(num_threads)
@@ -159,9 +159,9 @@ def test_stream_concurrent_is_open_calls(send_messages):
     assert all(not t.is_alive() for t in threads)
 
 
-def test_stream_concurrent_read_operations(send_messages):
+def test_stream_concurrent_read_operations(send_messages, unused_udp_port):
     """Test concurrent read operations are safe."""
-    stream = Stream(port=8003)
+    stream = Stream(port=unused_udp_port)
     num_threads = 5
     packets_sent = 20
 
@@ -183,8 +183,10 @@ def test_stream_concurrent_read_operations(send_messages):
 
     with stream:
         # Send packets
-        send_messages(8003, test_packets)
+        sender = send_messages(unused_udp_port, test_packets)
         time.sleep(0.05)
+        sender.join(timeout=1.0)
+        assert not sender.is_alive()
 
         threads = []
         for tid in range(num_threads):
@@ -202,28 +204,31 @@ def test_connection_concurrent_send_operations(sensor):
     """Test concurrent send operations on same connection."""
     HOST, PORT = sensor
     connection = Connection(host=HOST, port=PORT)
-    connection.open()
-
-    num_threads = 5
-    success_count = [0]
-
-    def sender():
-        req_data = bytearray(
-            bytes.fromhex("ffff") + struct.pack("<HH", 0, 1) + bytes.fromhex("12")
-        )
-        if connection.send(req_data):
-            success_count[0] += 1
-
     threads = []
-    for _ in range(num_threads):
-        t = Thread(target=sender)
-        t.start()
-        threads.append(t)
+    try:
+        connection.open()
 
-    for t in threads:
-        t.join()
+        num_threads = 5
+        success_count = [0]
 
-    connection.close()
+        def sender():
+            req_data = bytearray(
+                bytes.fromhex("ffff") + struct.pack("<HH", 0, 1) + bytes.fromhex("12")
+            )
+            if connection.send(req_data):
+                success_count[0] += 1
+
+        for _ in range(num_threads):
+            t = Thread(target=sender)
+            t.start()
+            threads.append(t)
+
+        for t in threads:
+            t.join()
+    finally:
+        for t in threads:
+            t.join(timeout=1.0)
+        connection.close()
 
     # At least some sends should succeed
     assert success_count[0] > 0
@@ -257,30 +262,36 @@ def test_driver_concurrent_sampling(sensor):
     """Test concurrent sample() calls are thread-safe."""
     HOST, PORT = sensor
     driver = Driver(host=HOST, port=PORT)
-    driver.streaming_on()
-    time.sleep(0.2)  # Allow some data to arrive
-
-    num_threads = 10
-    samples_per_thread = 50
-    all_samples = [[] for _ in range(num_threads)]
-
-    def sampler(thread_id):
-        for _ in range(samples_per_thread):
-            sample = driver.sample()
-            if sample is not None:
-                all_samples[thread_id].append(sample)
-            time.sleep(0.001)
-
     threads = []
-    for tid in range(num_threads):
-        t = Thread(target=sampler, args=(tid,))
-        t.start()
-        threads.append(t)
+    try:
+        assert driver.streaming_on(auto_reconnect=False)
+        time.sleep(0.2)  # Allow some data to arrive
 
-    for t in threads:
-        t.join()
+        num_threads = 10
+        samples_per_thread = 50
+        all_samples = [[] for _ in range(num_threads)]
 
-    driver.streaming_off()
+        def sampler(thread_id):
+            for _ in range(samples_per_thread):
+                sample = driver.sample()
+                if sample is not None:
+                    all_samples[thread_id].append(sample)
+                time.sleep(0.001)
+
+        for tid in range(num_threads):
+            t = Thread(target=sampler, args=(tid,))
+            t.start()
+            threads.append(t)
+
+        for t in threads:
+            t.join()
+    finally:
+        for t in threads:
+            t.join(timeout=1.0)
+        if driver.is_streaming:
+            driver.streaming_off()
+        else:
+            driver.connection.close()
 
     # All threads should complete
     assert all(not t.is_alive() for t in threads)
@@ -297,21 +308,29 @@ def test_driver_concurrent_streaming_on_calls(sensor):
 
     num_threads = 5
     results = []
+    threads = []
+    barrier = Barrier(num_threads)
 
     def start_stream():
-        result = driver.streaming_on()
+        barrier.wait()
+        result = driver.streaming_on(auto_reconnect=False)
         results.append(result)
 
-    threads = []
-    for _ in range(num_threads):
-        t = Thread(target=start_stream)
-        t.start()
-        threads.append(t)
+    try:
+        for _ in range(num_threads):
+            t = Thread(target=start_stream)
+            t.start()
+            threads.append(t)
 
-    for t in threads:
-        t.join()
-
-    driver.streaming_off()
+        for t in threads:
+            t.join()
+    finally:
+        for t in threads:
+            t.join(timeout=1.0)
+        if driver.is_streaming:
+            driver.streaming_off()
+        else:
+            driver.connection.close()
 
     # At least one should succeed
     assert any(results)
@@ -321,25 +340,28 @@ def test_driver_concurrent_get_parameter_calls(sensor):
     """Test concurrent get_parameter() calls."""
     HOST, PORT = sensor
     driver = Driver(host=HOST, port=PORT)
-    driver.connection.open()
-
-    num_threads = 5
-    results = [None] * num_threads
-
-    def get_param(thread_id):
-        resp = driver.get_parameter(index="0001", subindex="00")
-        results[thread_id] = resp
-
     threads = []
-    for tid in range(num_threads):
-        t = Thread(target=get_param, args=(tid,))
-        t.start()
-        threads.append(t)
+    try:
+        driver.connection.open()
 
-    for t in threads:
-        t.join()
+        num_threads = 5
+        results = [None] * num_threads
 
-    driver.connection.close()
+        def get_param(thread_id):
+            resp = driver.get_parameter(index="0001", subindex="00")
+            results[thread_id] = resp
+
+        for tid in range(num_threads):
+            t = Thread(target=get_param, args=(tid,))
+            t.start()
+            threads.append(t)
+
+        for t in threads:
+            t.join()
+    finally:
+        for t in threads:
+            t.join(timeout=1.0)
+        driver.connection.close()
 
     # All threads should complete and get responses
     assert all(r is not None for r in results)
@@ -352,20 +374,25 @@ def test_driver_concurrent_command_execution(sensor):
 
     num_threads = 3
     results = [None] * num_threads
+    threads = []
 
     def execute_cmd(thread_id):
         # Use tare command as it's safe to run multiple times
         resp = driver.tare()
         results[thread_id] = resp
 
-    threads = []
-    for tid in range(num_threads):
-        t = Thread(target=execute_cmd, args=(tid,))
-        t.start()
-        threads.append(t)
+    try:
+        for tid in range(num_threads):
+            t = Thread(target=execute_cmd, args=(tid,))
+            t.start()
+            threads.append(t)
 
-    for t in threads:
-        t.join()
+        for t in threads:
+            t.join()
+    finally:
+        for t in threads:
+            t.join(timeout=1.0)
+        driver.connection.close()
 
     # All threads should complete
     assert all(r is not None for r in results)
@@ -375,51 +402,57 @@ def test_driver_no_deadlock_with_concurrent_operations(sensor):
     """Test that concurrent operations don't cause deadlocks."""
     HOST, PORT = sensor
     driver = Driver(host=HOST, port=PORT)
-    driver.streaming_on()
-    time.sleep(0.1)
-
     completed = {"sample": False, "status": False, "param": False}
+    threads = []
+    try:
+        assert driver.streaming_on(auto_reconnect=False)
+        time.sleep(0.1)
 
-    def sampler():
-        for _ in range(10):
-            driver.sample()
-            time.sleep(0.01)
-        completed["sample"] = True
+        def sampler():
+            for _ in range(10):
+                driver.sample()
+                time.sleep(0.01)
+            completed["sample"] = True
 
-    def status_checker():
-        for _ in range(10):
-            driver.get_status()
-            time.sleep(0.01)
-        completed["status"] = True
+        def status_checker():
+            for _ in range(10):
+                driver.get_status()
+                time.sleep(0.01)
+            completed["status"] = True
 
-    def param_getter():
-        for _ in range(5):
-            driver.get_parameter(index="0001", subindex="00")
-            time.sleep(0.02)
-        completed["param"] = True
+        def param_getter():
+            for _ in range(5):
+                driver.get_parameter(index="0001", subindex="00")
+                time.sleep(0.02)
+            completed["param"] = True
 
-    threads = [
-        Thread(target=sampler),
-        Thread(target=status_checker),
-        Thread(target=param_getter),
-    ]
+        threads = [
+            Thread(target=sampler),
+            Thread(target=status_checker),
+            Thread(target=param_getter),
+        ]
 
-    for t in threads:
-        t.start()
+        for t in threads:
+            t.start()
 
-    for t in threads:
-        t.join(timeout=5.0)
-
-    driver.streaming_off()
+        for t in threads:
+            t.join(timeout=5.0)
+    finally:
+        if driver.is_streaming:
+            driver.streaming_off()
+        else:
+            driver.connection.close()
+        for t in threads:
+            t.join(timeout=1.0)
 
     # All operations should complete without deadlock
     assert all(not t.is_alive() for t in threads)
     assert all(completed.values())
 
 
-def test_stream_lock_prevents_concurrent_state_modification():
+def test_stream_lock_prevents_concurrent_state_modification(unused_udp_port):
     """Test that lock prevents concurrent is_open modifications."""
-    stream = Stream(port=8004)
+    stream = Stream(port=unused_udp_port)
     num_threads = 50
     barrier = Barrier(num_threads)
 

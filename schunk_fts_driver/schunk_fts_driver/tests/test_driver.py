@@ -13,10 +13,13 @@
 # You should have received a copy of the GNU General Public License along with
 # this program. If not, see <https://www.gnu.org/licenses/>.
 # --------------------------------------------------------------------------------
-from schunk_fts_driver.driver import Driver
 from threading import Thread
 import time
+
 import rclpy
+from rclpy.lifecycle import TransitionCallbackReturn
+
+from schunk_fts_driver.driver import Driver
 
 
 def test_driver_uses_dedicated_callback_group_for_publishing_ft_data(ros2):
@@ -54,12 +57,16 @@ def test_driver_uses_library_for_sensor_communication(sensor, ros2):
         parameter_overrides=[
             rclpy.parameter.Parameter("host", rclpy.Parameter.Type.STRING, host),
             rclpy.parameter.Parameter("port", rclpy.Parameter.Type.INTEGER, port),
+            rclpy.parameter.Parameter(
+                "output_rate", rclpy.Parameter.Type.STRING, "500"
+            ),
         ],
     )
     try:
         assert driver.sensor is not None
         assert driver.get_parameter("host").value == host
         assert driver.get_parameter("port").value == port
+        assert driver.sensor.output_rate == "500"
     finally:
         if driver.sensor.is_streaming:
             driver.sensor.streaming_off()
@@ -159,7 +166,7 @@ def test_driver_runs_background_thread_for_publishing(sensor, ros2):
             driver.on_cleanup(state=None)
             assert not driver.thread.is_alive()
 
-        driver.on_shutdown(state=None)
+        assert driver.on_shutdown(state=None) == TransitionCallbackReturn.SUCCESS
         assert not driver.thread.is_alive()
     finally:
         if driver.thread.is_alive():

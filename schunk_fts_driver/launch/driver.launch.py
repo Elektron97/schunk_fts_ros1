@@ -16,6 +16,7 @@
 
 from launch import LaunchDescription  # type: ignore [attr-defined]
 from launch_ros.actions import Node
+from launch_ros.parameter_descriptions import ParameterValue
 from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration
 
@@ -34,13 +35,18 @@ streaming_port = DeclareLaunchArgument(
     default_value="54843",
     description="The sensor's UDP/IP streaming port",
 )
+output_rate = DeclareLaunchArgument(
+    "output_rate",
+    default_value="1000",
+    description="The sensor output rate: 100, 250, 500, 1000, or 500_16",
+)
 namespace = DeclareLaunchArgument(
     "namespace",
     default_value="schunk",
     description="The node's namespace",
 )
 
-args = [host, port, streaming_port, namespace]
+args = [host, port, streaming_port, output_rate, namespace]
 
 
 def generate_launch_description():
@@ -56,6 +62,11 @@ def generate_launch_description():
                     {"host": LaunchConfiguration("host")},
                     {"port": LaunchConfiguration("port")},
                     {"streaming_port": LaunchConfiguration("streaming_port")},
+                    {
+                        "output_rate": ParameterValue(
+                            LaunchConfiguration("output_rate"), value_type=str
+                        )
+                    },
                 ],
                 respawn=False,
                 output="both",

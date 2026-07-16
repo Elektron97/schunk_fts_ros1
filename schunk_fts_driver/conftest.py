@@ -1,4 +1,4 @@
-# Copyright 2025 SCHUNK SE & Co. KG
+# Copyright 2026 SCHUNK SE & Co. KG
 #
 # This program is free software: you can redistribute it and/or modify it
 # under the terms of the GNU General Public License as published by the Free
@@ -13,8 +13,19 @@
 # You should have received a copy of the GNU General Public License along with
 # this program. If not, see <https://www.gnu.org/licenses/>.
 # --------------------------------------------------------------------------------
-pytest_plugins = ["schunk_fts_library.fixtures"]
+from pathlib import Path
+import sys
 
 
-def load_tests(loader, standard_tests, pattern):
-    return loader.suiteClass()
+def _prepend_python_package_paths() -> None:
+    package_root = Path(__file__).resolve().parent
+    workspace_root = package_root.parent
+    for package_dir in ("schunk_fts_driver", "schunk_fts_library"):
+        package_path = str(workspace_root / package_dir)
+        if package_path not in sys.path:
+            sys.path.insert(0, package_path)
+
+
+_prepend_python_package_paths()
+
+from schunk_fts_library.fixtures import sensor  # noqa: E402,F401

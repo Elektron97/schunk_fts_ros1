@@ -27,6 +27,19 @@ import time
 import threading
 
 
+def data_qos(depth: int) -> QoSProfile:
+    return QoSProfile(depth=depth, reliability=ReliabilityPolicy.BEST_EFFORT)
+
+
+def wait_for_future(future, timeout_sec: float = 5.0):
+    deadline = time.monotonic() + timeout_sec
+    while time.monotonic() < deadline:
+        if future.done():
+            return future.result()
+        time.sleep(0.005)
+    raise TimeoutError(f"Service response did not arrive within {timeout_sec:.1f}s")
+
+
 def test_complete_startup_to_shutdown_cycle(sensor, lifecycle_interface):
     """Test complete lifecycle from startup to shutdown."""
     driver = lifecycle_interface
@@ -51,7 +64,10 @@ def test_complete_startup_to_shutdown_cycle(sensor, lifecycle_interface):
         messages.append(msg)
 
     _ = driver.node.create_subscription(
-        WrenchStamped, "/schunk/fts/data", partial(collect, messages=messages), 10
+        WrenchStamped,
+        "/schunk/fts/data",
+        partial(collect, messages=messages),
+        data_qos(10),
     )
 
     timeout = time.time() + 0.5
@@ -98,7 +114,7 @@ def test_end_to_end_data_flow(sensor, lifecycle_interface):
         WrenchStamped,
         "/schunk/fts/data",
         partial(analyze_data, data=received_data, timestamps=timestamps),
-        10,
+        data_qos(10),
     )
 
     # Collect data for 1 second
@@ -170,12 +186,11 @@ def test_system_behavior_under_load(sensor, lifecycle_interface):
         for _ in range(5):
             req = Trigger.Request()
             future = tare_cli.call_async(req)
-            rclpy.spin_until_future_complete(
-                load_node, future, executor=executor, timeout_sec=5.0
-            )
+            wait_for_future(future)
 
-            if future.result():
-                service_results.append(future.result())
+            result = future.result()
+            if result:
+                service_results.append(result)
             time.sleep(0.2)
         print("Periodic service calls finished.")
 
@@ -229,7 +244,7 @@ def test_multiple_complete_cycles(sensor, lifecycle_interface):
             WrenchStamped,
             "/schunk/fts/data",
             partial(collect, messages=messages),
-            10,
+            data_qos(10),
         )
 
         timeout = time.time() + 0.3
@@ -283,7 +298,7 @@ def test_data_and_diagnostics_correlation(sensor, lifecycle_interface):
         WrenchStamped,
         "/schunk/fts/data",
         partial(collect_data, messages=data_messages),
-        10,
+        data_qos(10),
     )
 
     _ = driver.node.create_subscription(
@@ -331,7 +346,7 @@ def test_service_and_data_interleaving(sensor, lifecycle_interface):
         WrenchStamped,
         "/schunk/fts/data",
         partial(collect_data, messages=data_messages),
-        10,
+        data_qos(10),
     )
 
     node = Node("interleave_test")
@@ -399,7 +414,7 @@ def test_long_running_stability(sensor, lifecycle_interface):
         WrenchStamped,
         "/schunk/fts/data",
         partial(collect_with_validation, messages=messages, errors=errors),
-        10,
+        data_qos(10),
     )
 
     # Run for 3 seconds
@@ -437,7 +452,10 @@ def test_resource_cleanup_verification(sensor, lifecycle_interface):
         messages.append(msg)
 
     sub = driver.node.create_subscription(
-        WrenchStamped, "/schunk/fts/data", partial(collect, messages=messages), 10
+        WrenchStamped,
+        "/schunk/fts/data",
+        partial(collect, messages=messages),
+        data_qos(10),
     )
 
     timeout = time.time() + 0.3
@@ -465,7 +483,10 @@ def test_resource_cleanup_verification(sensor, lifecycle_interface):
         messages.append(msg)
 
     _ = driver.node.create_subscription(
-        WrenchStamped, "/schunk/fts/data", partial(collect2, messages=messages2), 10
+        WrenchStamped,
+        "/schunk/fts/data",
+        partial(collect2, messages=messages2),
+        data_qos(10),
     )
 
     timeout = time.time() + 0.3
@@ -505,7 +526,7 @@ def test_concurrent_operations_integration(sensor, lifecycle_interface):
         WrenchStamped,
         "/schunk/fts/data",
         partial(collect_data, messages=data_messages),
-        10,
+        data_qos(10),
     )
 
     _ = driver.node.create_subscription(
@@ -537,10 +558,11 @@ def test_concurrent_operations_integration(sensor, lifecycle_interface):
         for _ in range(3):
             req = Trigger.Request()
             future = cli.call_async(req)
-            executor.spin_until_future_complete(future, timeout_sec=5.0)
+            wait_for_future(future)
 
-            if future.result():
-                service_results.append(future.result())
+            result = future.result()
+            if result:
+                service_results.append(result)
             time.sleep(0.3)
 
     service_thread = threading.Thread(target=make_service_calls)
@@ -548,6 +570,8 @@ def test_concurrent_operations_integration(sensor, lifecycle_interface):
     service_thread.join(timeout=10.0)
 
     # Gracefully shut down the executor and clean up resources
+    executor.remove_node(driver.node)
+    executor.remove_node(service_node)
     executor.shutdown()
     executor_thread.join(timeout=5.0)  # Ensure the executor thread has finished
     service_node.destroy_node()
@@ -560,5 +584,4 @@ def test_concurrent_operations_integration(sensor, lifecycle_interface):
     for result in service_results:
         assert result.success, "Service calls should succeed"
 
-    driver.change_state(Transition.TRANSITION_DEACTIVATE)
-    driver.change_state(Transition.TRANSITION_CLEANUP)
+    driver.shutdown()

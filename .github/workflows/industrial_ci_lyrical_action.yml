@@ -15,8 +15,7 @@ jobs:
   industrial_ci:
     env:
       BEFORE_BUILD_TARGET_WORKSPACE: '.github/script/install_dependencies.sh'
-      NOT_TEST_BUILD: 'true'
-      AFTER_SCRIPT: 'bash "$TARGET_REPO_PATH/.github/script/run_pytest_lyrical.sh"'
+      BEFORE_RUN_TARGET_TEST: '.github/script/install_dummy.sh'
 
     strategy:
       fail-fast: false
@@ -24,6 +23,7 @@ jobs:
         env:
           - {ROS_DISTRO: lyrical, ROS_REPO: main}
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: 'ros-industrial/industrial_ci@master'

@@ -14,6 +14,11 @@
 # this program. If not, see <https://www.gnu.org/licenses/>.
 # --------------------------------------------------------------------------------
 from lifecycle_msgs.msg import Transition, State
+from rclpy.qos import QoSProfile, ReliabilityPolicy
+
+
+def data_qos(depth: int) -> QoSProfile:
+    return QoSProfile(depth=depth, reliability=ReliabilityPolicy.BEST_EFFORT)
 
 
 def test_driver_supports_repeated_configure_and_cleanup(sensor, lifecycle_interface):
@@ -215,7 +220,7 @@ def test_activate_starts_data_publishing(sensor, lifecycle_interface):
         WrenchStamped,
         "/schunk/fts/data",
         partial(collect_before, messages=messages_before),
-        10,
+        data_qos(10),
     )
 
     # Before activate, no data should be published
@@ -239,7 +244,7 @@ def test_activate_starts_data_publishing(sensor, lifecycle_interface):
         WrenchStamped,
         "/schunk/fts/data",
         partial(collect_after, messages=messages_after),
-        10,
+        data_qos(10),
     )
 
     # After activate, data should be published
@@ -273,7 +278,7 @@ def test_deactivate_stops_data_publishing(sensor, lifecycle_interface):
         WrenchStamped,
         "/schunk/fts/data",
         partial(collect_active, messages=messages_active),
-        10,
+        data_qos(10),
     )
 
     # While active, should receive data
@@ -297,7 +302,7 @@ def test_deactivate_stops_data_publishing(sensor, lifecycle_interface):
         WrenchStamped,
         "/schunk/fts/data",
         partial(collect_inactive, messages=messages_inactive),
-        10,
+        data_qos(10),
     )
 
     # After deactivate, no data should be published

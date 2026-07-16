@@ -94,6 +94,57 @@ def test_buffer_offers_putting_and_getting_data():
     assert buffer.get() == data
 
 
+def test_buffer_expands_packaged_packets_into_samples():
+    buffer = FTDataBuffer()
+    packet = bytearray(b"\xFF\xFF")
+    packet += struct.pack("<HHB", 77, 449, 3)
+    for sample_index in range(16):
+        packet += struct.pack(
+            "<I ffffff",
+            0x00000001,
+            float(sample_index),
+            float(sample_index),
+            float(sample_index),
+            float(sample_index),
+            float(sample_index),
+            float(sample_index),
+        )
+
+    buffer.put(packet)
+    samples = [buffer.get() for _ in range(16)]
+
+    assert all(sample is not None for sample in samples)
+    assert [sample["sample_index"] for sample in samples if sample] == list(range(16))
+    assert all(sample["counter"] == 77 for sample in samples if sample)
+    assert buffer.get() is None
+
+
+def test_buffer_clear_discards_queued_and_pending_samples():
+    buffer = FTDataBuffer()
+    packet = bytearray(b"\xFF\xFF")
+    packet += struct.pack("<HHB", 77, 449, 3)
+    for sample_index in range(16):
+        packet += struct.pack(
+            "<I ffffff",
+            0x00000001,
+            float(sample_index),
+            float(sample_index),
+            float(sample_index),
+            float(sample_index),
+            float(sample_index),
+            float(sample_index),
+        )
+
+    buffer.put(packet)
+    assert buffer.get() is not None
+    assert len(buffer) == 15
+
+    buffer.clear()
+
+    assert len(buffer) == 0
+    assert buffer.get() is None
+
+
 def test_buffer_knows_expected_length():
     buffer = FTDataBuffer(maxsize=3)
 
@@ -112,6 +163,7 @@ def test_buffer_knows_expected_length():
     # Try to overfill — buffer should drop packets, but size stays constant
     buffer.put(bytearray(b"\x00" * 32))
     assert len(buffer) == 3
+    assert buffer.dropped_packet_count == 1
 
 
 def test_buffer_supports_concurrent_accesses():
@@ -152,6 +204,8 @@ def test_buffer_supports_concurrent_accesses():
             data = buffer.get()
             if data is None:
                 continue  # skip empty cycles
+            if data.get("sync") == b"":
+                continue  # skip no-signal sentinel
             try:
                 assert isinstance(data, dict)
                 assert data["sync"] == b"\xFF\xFF"

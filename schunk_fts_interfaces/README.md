@@ -1,6 +1,6 @@
 # SCHUNK FTS Interfaces
 
-Custom ROS2 service definitions for SCHUNK force-torque sensor driver.
+Custom ROS2 message and service definitions for SCHUNK force-torque sensor driver.
 
 ## Dependencies
 
@@ -8,4 +8,4 @@ Add to your `package.xml`:
 ```xml
 <depend>schunk_fts_interfaces</depend>
 ```
-These dependencies should not be required if you only want to subscribe to topics published by the driver. So you can omit them to keep your packages lightweight.
+Subscribers to `/schunk/fts/data` need this package when the driver runs with `output_rate=500_16`, because that mode publishes `schunk_fts_interfaces/WrenchStampedBatch` instead of `geometry_msgs/WrenchStamped`.

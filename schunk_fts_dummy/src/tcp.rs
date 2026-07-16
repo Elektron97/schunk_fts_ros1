@@ -1,15 +1,17 @@
+use crate::output_rate::OutputRateState;
 use crate::sensor::Sensor;
 use bytes::{BufMut, BytesMut};
 use tokio::io;
 use tokio::net::TcpListener;
 
-pub async fn handle_requests() -> io::Result<()> {
+pub async fn handle_requests(output_rate: OutputRateState) -> io::Result<()> {
     let listener = TcpListener::bind("127.0.0.1:8082").await?;
 
     loop {
         let (socket, addr) = listener.accept().await?;
+        let output_rate = output_rate.clone();
         tokio::spawn(async move {
-            let mut sensor = Sensor::new(socket);
+            let mut sensor = Sensor::with_output_rate(socket, output_rate);
             let mut counter: u16 = 1;
             loop {
                 match sensor.read().await {

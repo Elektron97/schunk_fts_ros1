@@ -16,6 +16,7 @@
 
 import rclpy
 from rclpy.node import Node
+from rclpy.qos import QoSProfile, ReliabilityPolicy
 from lifecycle_msgs.msg import Transition
 from geometry_msgs.msg import WrenchStamped
 from diagnostic_msgs.msg import DiagnosticStatus
@@ -23,6 +24,10 @@ from std_srvs.srv import Trigger
 from schunk_fts_interfaces.srv import SendCommand  # type: ignore [attr-defined]
 from functools import partial
 import time
+
+
+def data_qos(depth: int) -> QoSProfile:
+    return QoSProfile(depth=depth, reliability=ReliabilityPolicy.BEST_EFFORT)
 
 
 def test_driver_handles_empty_data_buffer_gracefully(sensor, lifecycle_interface):
@@ -40,7 +45,7 @@ def test_driver_handles_empty_data_buffer_gracefully(sensor, lifecycle_interface
         WrenchStamped,
         "/schunk/fts/data",
         partial(collect_messages, messages=messages),
-        10,
+        data_qos(10),
     )
 
     # The driver should handle empty buffer returns gracefully
@@ -71,7 +76,7 @@ def test_driver_continues_after_packet_skip(sensor, lifecycle_interface):
         WrenchStamped,
         "/schunk/fts/data",
         partial(collect_messages, messages=messages),
-        100,
+        data_qos(100),
     )
 
     # Collect messages - driver should continue even if packets are skipped
@@ -88,7 +93,7 @@ def test_driver_continues_after_packet_skip(sensor, lifecycle_interface):
     for msg in messages:
         assert msg.header.stamp.sec >= 0
         assert msg.header.stamp.nanosec >= 0
-        assert msg.header.frame_id == "driver"
+        assert msg.header.frame_id == "fts"
 
     driver.change_state(Transition.TRANSITION_DEACTIVATE)
     driver.change_state(Transition.TRANSITION_CLEANUP)
@@ -191,7 +196,10 @@ def test_recovery_after_service_failure(sensor, lifecycle_interface):
         messages.append(msg)
 
     _ = driver.node.create_subscription(
-        WrenchStamped, "/schunk/fts/data", partial(collect, messages=messages), 10
+        WrenchStamped,
+        "/schunk/fts/data",
+        partial(collect, messages=messages),
+        data_qos(10),
     )
 
     timeout = time.time() + 0.5
@@ -272,7 +280,7 @@ def test_driver_handles_counter_wraparound(sensor, lifecycle_interface):
         WrenchStamped,
         "/schunk/fts/data",
         partial(collect_messages, messages=messages),
-        100,
+        data_qos(100),
     )
 
     # Collect many messages to potentially see counter behavior
@@ -351,7 +359,7 @@ def test_driver_publishes_after_temporary_buffer_empty(sensor, lifecycle_interfa
         WrenchStamped,
         "/schunk/fts/data",
         partial(collect_phase1, messages=messages_phase1),
-        10,
+        data_qos(10),
     )
 
     # Phase 1: Collect some messages
@@ -372,7 +380,7 @@ def test_driver_publishes_after_temporary_buffer_empty(sensor, lifecycle_interfa
         WrenchStamped,
         "/schunk/fts/data",
         partial(collect_phase2, messages=messages_phase2),
-        10,
+        data_qos(10),
     )
 
     timeout = time.time() + 0.3
@@ -450,7 +458,7 @@ def test_continuous_operation_stress_test(sensor, lifecycle_interface):
         WrenchStamped,
         "/schunk/fts/data",
         partial(collect_messages, messages=messages, errors=errors),
-        10,
+        data_qos(10),
     )
 
     # Run for 2 seconds under continuous load

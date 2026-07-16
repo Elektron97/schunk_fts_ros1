@@ -342,7 +342,12 @@ def test_error_driver_timeout_detection(sensor, send_messages):
     """Test driver detects timeout when data stops arriving."""
     HOST, PORT = sensor
     test_port = 8010
-    driver = Driver(host=HOST, port=PORT, streaming_port=test_port)
+    driver = Driver(
+        host=HOST,
+        port=PORT,
+        streaming_port=test_port,
+        streaming_source_host="127.0.0.1",
+    )
     driver.timeout_sec = 0.2
 
     # Start streaming
