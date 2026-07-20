@@ -45,22 +45,30 @@ parameter defaults (`ip=192.168.0.100`, `port=82`, `frame_id=fts_link`, `output_
 
 ### Enabling 8kHz batch mode
 
-Set `output_rate` to `"500_16"` (the sensor's batch-streaming mode: 500 packets/sec × 16 samples =
+Set `output_rate` to `"500-16"` (the sensor's batch-streaming mode: 500 packets/sec × 16 samples =
 8000 samples/sec):
 
 ```bash
-rosrun schunk_fts_ros1 schunk_fts_driver_node.py _ip:=192.168.0.100 _output_rate:=500_16
+rosrun schunk_fts_ros1 schunk_fts_driver_node.py _ip:=192.168.0.100 _output_rate:=500-16
 # or
-roslaunch schunk_fts_ros1 driver.launch output_rate:=500_16
+roslaunch schunk_fts_ros1 driver.launch output_rate:=500-16
 ```
 
 Other supported values: `"1000"` (default), `"500"`, `"250"`, `"100"` — these are all still
-single-sample-per-packet, just at different rates; only `"500_16"` engages the batch path. An
+single-sample-per-packet, just at different rates; only `"500-16"` engages the batch path. An
 unsupported value (e.g. `_output_rate:=8000`) is rejected at startup with a logged error rather
 than crashing the node.
 
+> **Note on the delimiter**: this value is spelled with a hyphen (`500-16`), not an underscore
+> (`500_16`) as in some earlier drafts of this feature. `rosrun _output_rate:=500_16` (and any
+> other rosparam/YAML-based way of setting it) silently turned `"500_16"` into the integer `50016`
+> before it ever reached validation, because YAML 1.1 and Python's `int()` both treat `_` as a
+> digit-group separator — the batch rate could never actually be selected from the documented CLI
+> syntax. A hyphen isn't part of any numeric literal grammar those parsers use, so `"500-16"`
+> always survives as a plain string. See GH issue #1.
+
 **What batch mode looks like on the topic side**: `/schunk/driver/data` still only ever publishes
-`geometry_msgs/WrenchStamped` — there's no new message type. At `"500_16"`, the node publishes 16
+`geometry_msgs/WrenchStamped` — there's no new message type. At `"500-16"`, the node publishes 16
 individual `WrenchStamped` messages per UDP packet (i.e. `rostopic hz /schunk/driver/data` should
 read close to 8000, not 500) instead of one aggregate message with an array field. This was a
 deliberate scope decision (see `MIGRATION_PLAN.md` §2, "Option A") to avoid introducing a new custom

@@ -38,7 +38,15 @@ import struct
 
 OUTPUT_RATE_PARAMETER_INDEX = "1020"
 OUTPUT_RATE_PARAMETER_SUBINDEX = "00"
-SUPPORTED_OUTPUT_RATES = ("1000", "500", "250", "100", "500_16")
+# "500-16", not "500_16": rospy's CLI private-param parsing
+# (rospy.client.load_command_line_node_params) runs `_output_rate:=...`
+# through yaml.safe_load(), and both YAML 1.1's int grammar and Python's
+# int() (PEP 515) treat "_" as a digit-group separator - "500_16" silently
+# becomes the int 50016 before this module ever sees it. "-" isn't part of
+# any numeric literal grammar those parsers use, so a hyphen-joined value
+# always round-trips as the plain string "500-16", regardless of whether
+# it arrives via rosrun CLI args, roslaunch <param> tags, or rosparam YAML.
+SUPPORTED_OUTPUT_RATES = ("1000", "500", "250", "100", "500-16")
 
 
 @dataclass(frozen=True)
@@ -63,7 +71,7 @@ OUTPUT_RATE_TO_MODE = {
     "500": OutputRateMode("500", "01", 500, 500, 1),
     "250": OutputRateMode("250", "02", 250, 250, 1),
     "100": OutputRateMode("100", "03", 100, 100, 1),
-    "500_16": OutputRateMode("500_16", "0a", 500, 8000, 16),
+    "500-16": OutputRateMode("500-16", "0a", 500, 8000, 16),
 }
 
 

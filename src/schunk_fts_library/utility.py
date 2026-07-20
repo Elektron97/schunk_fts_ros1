@@ -114,7 +114,7 @@ class FTDataBuffer(object):
         Branches on the payload_len field (bytes [4:6]), matching the sensor's
         two streaming formats:
           - 29: single sample per packet (default output_rate, e.g. "1000").
-          - 449: 16-sample batch per packet (output_rate "500_16", 8kHz mode).
+          - 449: 16-sample batch per packet (output_rate "500-16", 8kHz mode).
           - anything else: fall back to the unconditional single-sample layout
             for forward-compatibility / malformed-length tolerance.
         """

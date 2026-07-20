@@ -35,8 +35,8 @@ simplifications" below). When translating a ROS2 change, first classify it as pl
 | ROS2 (`main`) | ROS1 (this fork) |
 |---|---|
 | `self.declare_parameter("output_rate", "1000")` + `self.get_parameter("output_rate").value` | `rospy.get_param('~ip', '192.168.0.100')` etc. — private (`~`) params read directly in `__init__`, no declare step |
-| Set via `ros2 launch ... output_rate:=500_16` or `ros2 param set` | Set via `rosrun ... _ip:=... _port:=... _frame_id:=... _output_rate:=...` or `launch/driver.launch`'s `<arg>`s (`ip`/`port`/`frame_id`/`output_rate`) |
-| Params: `ip`/`host`, `port`, `frame_id`, `output_rate` | Params: `ip`, `port`, `frame_id`, `output_rate` — **ported as of `MIGRATION_PLAN.md`'s 8kHz batch-mode work**, same supported values (`"1000"`/`"500"`/`"250"`/`"100"`/`"500_16"`), default `"1000"` |
+| Set via `ros2 launch ... output_rate:=500-16` or `ros2 param set` | Set via `rosrun ... _ip:=... _port:=... _frame_id:=... _output_rate:=...` or `launch/driver.launch`'s `<arg>`s (`ip`/`port`/`frame_id`/`output_rate`) |
+| Params: `ip`/`host`, `port`, `frame_id`, `output_rate` | Params: `ip`, `port`, `frame_id`, `output_rate` — **ported as of `MIGRATION_PLAN.md`'s 8kHz batch-mode work**, same supported values (`"1000"`/`"500"`/`"250"`/`"100"`/`"500-16"`), default `"1000"` |
 
 ## Services
 
@@ -50,7 +50,7 @@ simplifications" below). When translating a ROS2 change, first classify it as pl
 
 | ROS2 (`main`) | ROS1 (this fork) |
 |---|---|
-| Normal rates: `geometry_msgs/WrenchStamped` on `/schunk/fts/data`. `output_rate="500_16"`: `schunk_fts_interfaces/WrenchStampedBatch` instead (16 samples/msg, `packet_counter`/`packet_id`/`samples_per_packet` + `samples[]`) | Always `geometry_msgs/WrenchStamped` on `/schunk/driver/data`, **at every `output_rate` including `"500_16"`** — this fork deliberately chose not to add a `WrenchStampedBatch`-equivalent message (Option A in `MIGRATION_PLAN.md` §2); at `"500_16"` the node publishes 16 individual `WrenchStamped` messages per UDP packet instead of one aggregate message, with per-sample timestamps reconstructed from a per-packet base timestamp + `sample_index * sample_period_ns` |
+| Normal rates: `geometry_msgs/WrenchStamped` on `/schunk/fts/data`. `output_rate="500-16"`: `schunk_fts_interfaces/WrenchStampedBatch` instead (16 samples/msg, `packet_counter`/`packet_id`/`samples_per_packet` + `samples[]`) | Always `geometry_msgs/WrenchStamped` on `/schunk/driver/data`, **at every `output_rate` including `"500-16"`** — this fork deliberately chose not to add a `WrenchStampedBatch`-equivalent message (Option A in `MIGRATION_PLAN.md` §2); at `"500-16"` the node publishes 16 individual `WrenchStamped` messages per UDP packet instead of one aggregate message, with per-sample timestamps reconstructed from a per-packet base timestamp + `sample_index * sample_period_ns` |
 
 ## Testing / simulator
 

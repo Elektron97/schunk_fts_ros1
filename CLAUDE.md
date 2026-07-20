@@ -22,7 +22,7 @@ plus a Rust `schunk_fts_dummy` simulator) using `rclpy` lifecycle nodes. That co
 down to this single ROS1 package and **greatly simplified in the process** — there is still no
 lifecycle node (see `MIGRATION_PLAN.md` and the `ros1-vs-ros2-mapping` skill for the full idiom
 mapping and what remains deliberately unported, e.g. `SendCommand`/`SetParameter` services, a
-`WrenchStampedBatch`-equivalent message type, `ERROR_CODE_MAP`). The `output_rate`/`500_16`
+`WrenchStampedBatch`-equivalent message type, `ERROR_CODE_MAP`). The `output_rate`/`500-16`
 batch-streaming mode **has since been ported back in as an opt-in feature** (see "8kHz batch mode"
 below) — don't assume the driver is single-sample-only without checking. Some repo-root config
 files were stale leftovers from that older ROS2 layout; the Rust pre-commit hooks and the
@@ -107,7 +107,7 @@ is a deliberate decision, not a side effect of an unrelated change.
   `sync + counter + payload_len + payload` framing.
 - `FTDataBuffer.decode_packet()` decodes incoming UDP packets into `list[FTData]`, branching on
   `payload_len`: `29` bytes = one single sample (default `output_rate="1000"`), `449` bytes = a
-  16-sample batch (`output_rate="500_16"`, 8kHz effective), anything else falls back to the
+  16-sample batch (`output_rate="500-16"`, 8kHz effective), anything else falls back to the
   unconditional single-sample layout. `FTData` is `TypedDict, total=False`; batch samples carry
   extra `sample_index`/`samples_per_packet` keys, single samples don't. `decode()` is a thin
   `decode_packet(data)[0]` shim kept for compatibility. `FTDataBuffer.get()` drains a
@@ -128,7 +128,7 @@ is a deliberate decision, not a side effect of an unrelated change.
   `streaming_on()` returns `False` if the sensor rejects it), then issues the `start_udp_stream`
   command (`"40"`). `streaming_off()` reverses this (`"41"`, thread join, connection close).
 - `Driver.__init__` takes `output_rate: int | str = 1000`, validated against `OUTPUT_RATE_TO_MODE`
-  (`"1000"`/`"500"`/`"250"`/`"100"`/`"500_16"` — raises `ValueError` otherwise) and exposed as
+  (`"1000"`/`"500"`/`"250"`/`"100"`/`"500-16"` — raises `ValueError` otherwise) and exposed as
   `output_rate_mode` (an `OutputRateMode` with `sample_period_ns`/`packet_period_ns`). Also takes
   `streaming_source_host` to restrict which UDP source IP `Stream` accepts packets from
   (`Stream._accepts_source`); `_attempt_reconnect()` re-runs `_configure_output_rate()` so a
@@ -148,7 +148,7 @@ is a deliberate decision, not a side effect of an unrelated change.
   `sample()` and publishing, sleeping briefly only when `sample()` returns `None`) and publishes
   one `geometry_msgs/WrenchStamped` per drained sample on `/schunk/driver/data` — **no new message
   type was introduced for batch mode** (that was an explicit MVP scope decision, see
-  `MIGRATION_PLAN.md` §2 "Option A"; at `"500_16"` this means 16 individual `WrenchStamped`
+  `MIGRATION_PLAN.md` §2 "Option A"; at `"500-16"` this means 16 individual `WrenchStamped`
   messages per UDP packet rather than one aggregate message). Per-sample timestamps in batch mode
   are reconstructed from a per-packet base `rospy.Time.now()` plus `sample_index *
   output_rate_mode.sample_period_ns`, not read fresh per sample — see the code comment in

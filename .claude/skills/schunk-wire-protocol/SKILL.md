@@ -78,7 +78,7 @@ sync(2) counter(u16) payload_len(u16) id(u8) status_bits(u32) fx,fy,fz,tx,ty,tz(
 
 ### Batch format (main branch only, `payload_len == 449`)
 
-449 bytes = 1 packet ID byte + 16 samples × 28 bytes, at the `500_16` output rate (500 packets/s ×
+449 bytes = 1 packet ID byte + 16 samples × 28 bytes, at the `500-16` output rate (500 packets/s ×
 16 samples/packet = 8000 samples/s effective):
 
 ```

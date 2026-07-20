@@ -26,7 +26,7 @@ this is for approval.
 | ROS2 lifecycle node changes | `schunk_fts_driver/schunk_fts_driver/driver.py` (251 lines changed): `declare_parameter("output_rate")`, `WrenchStampedBatch` publishing, `_publish_sample_batches`, `_calculate_sample_timestamp_ns`, `_fill_wrench_stamped`, `_publish_samples`, `ERROR_CODE_MAP` service responses | **ROS2-plumbing** | The *timestamp reconstruction math* in `_calculate_sample_timestamp_ns` is protocol-relevant and should inform the ROS1 node's batch handling (§2), but the lifecycle/`rclpy` structure itself is not portable as-is — see `ros1-vs-ros2-mapping` skill. |
 | `schunk_fts_interfaces` additions | `WrenchStampedBatch.msg`, `SendCommand.srv`, `SetParameter.srv`, `CMakeLists.txt` | **ROS2-plumbing / design decision** | No interfaces package exists in this fork; these would become new files in this package's own `srv/`/`msg/` if ported. `SendCommand`/`SetParameter` are out of scope for this plan (not requested); `WrenchStampedBatch`-equivalent is a decision point in §2. |
 | ROS2 driver tests | `schunk_fts_driver/schunk_fts_driver/tests/*` (lifecycle, QoS, threading, topics, services) | **irrelevant-to-ROS1** | Exercise `rclpy` lifecycle/QoS machinery this fork doesn't have. Not portable; any new ROS1 node tests would need to be written fresh against `rospy`. |
-| `schunk_fts_dummy` Rust simulator | `Cargo.{toml,lock}`, `src/{main,output_rate,sensor,tcp,udp}.rs` | **irrelevant-to-ROS1 (for this repo)** | Not committed in `ros1` at all (see `CLAUDE.md`'s "stale config" note — it's still *referenced* by pre-commit but doesn't exist here). The updated dummy now emits 500_16 batch packets and honors the output-rate parameter — needed to test batch mode locally, but as an external dependency, not something this plan adds to this repo. Flagged for test strategy in §5. |
+| `schunk_fts_dummy` Rust simulator | `Cargo.{toml,lock}`, `src/{main,output_rate,sensor,tcp,udp}.rs` | **irrelevant-to-ROS1 (for this repo)** | Not committed in `ros1` at all (see `CLAUDE.md`'s "stale config" note — it's still *referenced* by pre-commit but doesn't exist here). The updated dummy now emits 500-16 batch packets and honors the output-rate parameter — needed to test batch mode locally, but as an external dependency, not something this plan adds to this repo. Flagged for test strategy in §5. |
 | Package metadata / READMEs | `*/package.xml` version bumps, `*/README.md` updates | **irrelevant-to-ROS1** | ROS2 package versioning and colcon-package docs; this fork has its own single `package.xml`/root `README.md` already reflecting its own state. |
 | CI / Dockerfiles / devcontainer (ROS2 side) | Referenced by commit messages (`Refactor CI workflows...`, `Update Dockerfiles...`) | **irrelevant-to-ROS1** | This fork has no `.github/` workflows and no devcontainer Dockerfile variants; `devcontainer_post_create.sh` here is a separate, already-stale artifact (§3), not something to sync from `main`. |
 | `security/` CVE scanner + reports | `security/cve_scanner.py`, `security/reports/*` | **irrelevant-to-ROS1** | Standalone CVE tooling per `CLAUDE.md`, unrelated to the driver; not present in `ros1` at all. |
@@ -51,10 +51,10 @@ alongside `~ip`/`~port`/`~frame_id`. Proposed values, matching `main`'s
 re-diffing/re-porting, per the `ros1-vs-ros2-mapping` skill's philosophy):
 
 ```
-~output_rate: "1000" (default) | "500" | "250" | "100" | "500_16"
+~output_rate: "1000" (default) | "500" | "250" | "100" | "500-16"
 ```
 
-Default `"1000"` preserves current behavior exactly. Only `"500_16"` engages batch decoding
+Default `"1000"` preserves current behavior exactly. Only `"500-16"` engages batch decoding
 (500 packets/s × 16 samples/packet = 8000 samples/s effective).
 
 ### Library changes (`protocol-library-porter` scope)
@@ -85,7 +85,7 @@ The current `stream_data` loop assumes exactly one sample per `rospy.Rate(1000)`
 assumption breaks under batch mode two ways, both needing explicit handling, not a silent
 carry-over:
 
-1. **Sample cadence**: at `500_16`, packets arrive every 2ms but each contains 16 samples (8000
+1. **Sample cadence**: at `500-16`, packets arrive every 2ms but each contains 16 samples (8000
    samples/s). Since `FTDataBuffer.get()` (via `_pending_samples`) already drains one sample per
    call regardless of batching, the minimal fix is to decouple the loop from a fixed 1000Hz
    `rospy.Rate` and instead drain-and-publish in a tight loop with a short sleep when the buffer is
@@ -101,7 +101,7 @@ carry-over:
 ### Open decision: new batch message type
 
 `main` publishes `schunk_fts_interfaces/WrenchStampedBatch` (packet-level metadata + 16 embedded
-`WrenchStamped`s) at `500_16`. This fork has no interfaces-equivalent package. Two options —
+`WrenchStamped`s) at `500-16`. This fork has no interfaces-equivalent package. Two options —
 **recommend Option A for the initial opt-in**, with Option B as a documented follow-up:
 
 - **Option A (recommended MVP)**: keep the topic type as plain `geometry_msgs/WrenchStamped` on
@@ -188,9 +188,9 @@ tests, checked directly against the current files:
   needed, run everywhere including CI without hardware. These are the tests that actually catch
   wire-format bugs (per the wire-protocol skill's "silent bugs" framing) and should be written
   first, before wiring `output_rate` through `Driver`.
-- End-to-end batch-mode verification (does the sensor actually emit 500_16 packets when the
+- End-to-end batch-mode verification (does the sensor actually emit 500-16 packets when the
   parameter is set, does auto-reconnect survive mid-batch-stream) needs a dummy that itself emits
-  500_16 packets — which means a dummy built from `main`'s updated `schunk_fts_dummy` Rust code
+  500-16 packets — which means a dummy built from `main`'s updated `schunk_fts_dummy` Rust code
   (the `ros1`-visible dummy path, `/tmp/schunk_fts_dummy/debug/schunk_fts_dummy`, is whatever
   binary CI drops there; locally you'd need to build the dummy from a `main`-branch checkout or
   wherever that Rust project currently lives, since it isn't committed in this repo). Use

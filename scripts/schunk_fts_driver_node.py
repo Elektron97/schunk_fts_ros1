@@ -93,7 +93,7 @@ class SchunkROS1Driver:
         # No fixed-rate limiter here: sample() (via FTDataBuffer.get()) already
         # blocks for up to ~0.1s internally when nothing is queued, and returns
         # immediately when a sample is pending. A rospy.Rate(1000) tick was only
-        # correct for exactly-one-sample-per-packet at 1000Hz; under "500_16"
+        # correct for exactly-one-sample-per-packet at 1000Hz; under "500-16"
         # batch mode, 16 samples surface back-to-back per 2ms packet and then
         # nothing until the next one, so we instead loop tightly and only sleep
         # briefly when sample() returns None (e.g. while not streaming, such as
@@ -124,7 +124,7 @@ class SchunkROS1Driver:
                     if sample_index:
                         # Reconstruct this sample's timestamp from the packet's
                         # base timestamp instead of calling rospy.Time.now()
-                        # again, since all 16 samples in a "500_16" batch packet
+                        # again, since all 16 samples in a "500-16" batch packet
                         # arrive in a single UDP datagram, not evenly spaced in
                         # real time. This mirrors main's
                         # _calculate_sample_timestamp_ns (base + sample_index *

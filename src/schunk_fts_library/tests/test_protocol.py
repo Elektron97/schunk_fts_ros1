@@ -325,7 +325,7 @@ def test_protocol_multiple_packets_in_sequence():
 
 
 def test_protocol_decode_packet_449_byte_batch_layout():
-    """Test the 500_16 output-rate batch framing (16 samples, 28-byte stride).
+    """Test the 500-16 output-rate batch framing (16 samples, 28-byte stride).
 
     sync(2) counter(u16) payload_len(u16)=449 packet_id(u8)
       [ status_bits(u32) fx,fy,fz,tx,ty,tz(f32 x6) ] x 16   (28 bytes each)
