@@ -1,0 +1,17 @@
+<launch>
+  <!-- Defaults mirror the rospy.get_param(...) defaults in
+       scripts/schunk_fts_driver_node.py, so `roslaunch schunk_fts_ros1
+       driver.launch` and the documented `rosrun ... _ip:=... _port:=...
+       _frame_id:=... _output_rate:=...` invocation stay equivalent. -->
+  <arg name="ip" default="192.168.0.100" />
+  <arg name="port" default="82" />
+  <arg name="frame_id" default="fts_link" />
+  <arg name="output_rate" default="1000" />
+
+  <node pkg="schunk_fts_ros1" type="schunk_fts_driver_node.py" name="schunk_fts_driver_ros1" output="screen">
+    <param name="~ip" value="$(arg ip)" />
+    <param name="~port" value="$(arg port)" />
+    <param name="~frame_id" value="$(arg frame_id)" />
+    <param name="~output_rate" value="$(arg output_rate)" />
+  </node>
+</launch>

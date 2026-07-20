@@ -36,6 +36,56 @@ from dataclasses import dataclass
 import struct
 
 
+OUTPUT_RATE_PARAMETER_INDEX = "1020"
+OUTPUT_RATE_PARAMETER_SUBINDEX = "00"
+# "500-16", not "500_16": rospy's CLI private-param parsing
+# (rospy.client.load_command_line_node_params) runs `_output_rate:=...`
+# through yaml.safe_load(), and both YAML 1.1's int grammar and Python's
+# int() (PEP 515) treat "_" as a digit-group separator - "500_16" silently
+# becomes the int 50016 before this module ever sees it. "-" isn't part of
+# any numeric literal grammar those parsers use, so a hyphen-joined value
+# always round-trips as the plain string "500-16", regardless of whether
+# it arrives via rosrun CLI args, roslaunch <param> tags, or rosparam YAML.
+SUPPORTED_OUTPUT_RATES = ("1000", "500", "250", "100", "500-16")
+
+
+@dataclass(frozen=True)
+class OutputRateMode:
+    output_rate: str
+    parameter_value: str
+    packet_rate_hz: int
+    sample_rate_hz: int
+    samples_per_packet: int
+
+    @property
+    def sample_period_ns(self) -> int:
+        return round(1_000_000_000 / self.sample_rate_hz)
+
+    @property
+    def packet_period_ns(self) -> int:
+        return self.sample_period_ns * self.samples_per_packet
+
+
+OUTPUT_RATE_TO_MODE = {
+    "1000": OutputRateMode("1000", "00", 1000, 1000, 1),
+    "500": OutputRateMode("500", "01", 500, 500, 1),
+    "250": OutputRateMode("250", "02", 250, 250, 1),
+    "100": OutputRateMode("100", "03", 100, 100, 1),
+    "500-16": OutputRateMode("500-16", "0a", 500, 8000, 16),
+}
+
+
+def _normalize_output_rate(output_rate: int | str) -> str:
+    normalized = str(output_rate)
+    if normalized not in OUTPUT_RATE_TO_MODE:
+        supported_rates = ", ".join(SUPPORTED_OUTPUT_RATES)
+        raise ValueError(
+            f"Unsupported output_rate {output_rate}. "
+            f"Supported output rates are: {supported_rates}"
+        )
+    return normalized
+
+
 @dataclass
 class SensorStatus:
     ready: bool
@@ -76,14 +126,28 @@ class SensorStatus:
 
 class Driver(object):
     def __init__(
-        self, host: str = "192.168.0.100", port: int = 82, streaming_port: int = 54843
+        self,
+        host: str = "192.168.0.100",
+        port: int = 82,
+        streaming_port: int = 54843,
+        output_rate: int | str = 1000,
+        streaming_source_host: str | None = None,
     ) -> None:
+        output_rate = _normalize_output_rate(output_rate)
+
         self.host = host
         self.port = port
         self.streaming_port = streaming_port
+        self.streaming_source_host = streaming_source_host
+        self.output_rate = output_rate
+        self.output_rate_mode = OUTPUT_RATE_TO_MODE[output_rate]
+        self.output_rate_parameter_value = self.output_rate_mode.parameter_value
         self.connection: Connection = Connection(host=host, port=port)
         self.ft_data: FTDataBuffer = FTDataBuffer()
-        self.stream: Stream = Stream(port=streaming_port)
+        self.stream: Stream = Stream(
+            port=streaming_port,
+            source_host=self.streaming_source_host,
+        )
         self.stream_update_thread: Thread = Thread()
         self.is_streaming = False
         self.name = "SCHUNK FTS"  # Placeholder until we can read it from the device
@@ -94,65 +158,76 @@ class Driver(object):
         self.last_producer_counter = -1
         self.producer_start_time = time.perf_counter()
         self._lock: Lock = Lock()
+        self._streaming_lock: Lock = Lock()
         self.reconnect_interval = 1.0  # seconds between reconnection attempts
         self.auto_reconnect = False
 
     def streaming_on(
         self, timeout_sec: float = 0.1, auto_reconnect: bool = True
     ) -> bool:
-        if self.is_streaming:
-            return True
-        if not isinstance(timeout_sec, float):
-            self.is_streaming = False
-            return False
-        if not self.connection.open():
-            self.is_streaming = False
-            return False
-
-        self.is_streaming = True
-        self.auto_reconnect = auto_reconnect
-        self.stream_update_thread = Thread(
-            target=asyncio.run,
-            args=(self._update(),),
-            daemon=True,
-        )
-        self.stream_update_thread.start()
-        max_duration = time.time() + timeout_sec
-        while not self.stream.is_open():
-            time.sleep(0.01)
-            if time.time() > max_duration:
+        with self._streaming_lock:
+            if self.is_streaming:
+                return True
+            if not isinstance(timeout_sec, float):
                 self.is_streaming = False
                 return False
-        nameasciistr = self.get_parameter(
-            index="0001", subindex="00"
-        ).param_value  # Product Name Parameter in ASCII
-        self.name = "".join(
-            [
-                chr(int(nameasciistr[i : i + 2], 16))
-                for i in range(0, len(nameasciistr), 2)
-            ]
-        ).strip(
-            "\x00"
-        )  # Convert hex to ASCII and strip null characters
-        self.hardware_id = self.get_parameter(
-            index="0001", subindex="03"
-        ).param_value  # Product ID Parameter
-        self.start_udp_stream()
-        return True
+            if not self.connection.open():
+                self.is_streaming = False
+                return False
+
+            self.is_streaming = True
+            self.auto_reconnect = auto_reconnect
+            self.stream_update_thread = Thread(
+                target=asyncio.run,
+                args=(self._update(),),
+                daemon=True,
+            )
+            self.stream_update_thread.start()
+            max_duration = time.time() + timeout_sec
+            while not self.stream.is_open():
+                time.sleep(0.01)
+                if time.time() > max_duration:
+                    self.is_streaming = False
+                    return False
+            nameasciistr = self.get_parameter(
+                index="0001", subindex="00"
+            ).param_value  # Product Name Parameter in ASCII
+            self.name = "".join(
+                [
+                    chr(int(nameasciistr[i : i + 2], 16))
+                    for i in range(0, len(nameasciistr), 2)
+                ]
+            ).strip(
+                "\x00"
+            )  # Convert hex to ASCII and strip null characters
+            self.hardware_id = self.get_parameter(
+                index="0001", subindex="03"
+            ).param_value  # Product ID Parameter
+            if not self._configure_output_rate():
+                self.is_streaming = False
+                self.auto_reconnect = False
+                self.connection.close()
+                return False
+            self.start_udp_stream()
+            return True
 
     def streaming_off(self) -> None:
-        self.stop_udp_stream()
-        self.auto_reconnect = False
-        self.is_streaming = False
-        if self.stream_update_thread.is_alive():
-            self.stream_update_thread.join()
-        self.connection.close()
+        with self._streaming_lock:
+            self.stop_udp_stream()
+            self.auto_reconnect = False
+            self.is_streaming = False
+            if self.stream_update_thread.is_alive():
+                self.stream_update_thread.join()
+            self.connection.close()
 
     def sample(self) -> FTData | None:
         if not self.is_streaming:
             return None
 
         return self.ft_data.get()
+
+    def clear_samples(self) -> None:
+        self.ft_data.clear()
 
     def get_parameter(self, index: str, subindex: str = "00") -> GetParameterResponse:
         req = GetParameterRequest()
@@ -191,6 +266,14 @@ class Driver(object):
         if data:
             response.from_bytes(data)
         return response
+
+    def _configure_output_rate(self) -> bool:
+        response = self.set_parameter(
+            value=self.output_rate_parameter_value,
+            index=OUTPUT_RATE_PARAMETER_INDEX,
+            subindex=OUTPUT_RATE_PARAMETER_SUBINDEX,
+        )
+        return response.error_code == "00"
 
     def run_command(self, command: str) -> CommandResponse:
         req = CommandRequest()
@@ -319,6 +402,11 @@ class Driver(object):
             # Try to start UDP stream with proper error handling
             try:
                 with self._lock:
+                    if not self._configure_output_rate():
+                        print("Failed to configure sensor output rate")
+                        self.connection.close()
+                        return False
+
                     response = self.start_udp_stream()
 
                     # Check if we got a valid response structure

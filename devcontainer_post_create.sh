@@ -13,10 +13,6 @@ git config --global --add safe.directory /workspace/src
 rosdep update
 rosdep install --from-paths /workspace/src --ignore-src -y
 
-# Install the local python packages
-pip install -e /workspace/src/schunk_fts_library --upgrade
-pip install -e /workspace/src/schunk_fts_driver --upgrade
-
 # Install and setup pre-commit
 pip install pre-commit
 cd /workspace/src
@@ -24,11 +20,11 @@ pre-commit install
 cd /workspace
 
 # Build the ROS workspace
-source /opt/ros/humble/setup.bash
+source /opt/ros/noetic/setup.bash
 cd /workspace
-colcon build --symlink-install
+catkin_make
 # Overlay the production workspace
-source /workspace/install/setup.bash
-echo 'source /workspace/install/setup.bash' >> /etc/bash.bashrc
+source /workspace/devel/setup.bash
+echo 'source /workspace/devel/setup.bash' >> /etc/bash.bashrc
 
 echo "post_create_command.sh completed."

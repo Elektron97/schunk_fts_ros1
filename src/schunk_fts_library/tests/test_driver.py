@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU General Public License along with
 # this program. If not, see <https://www.gnu.org/licenses/>.
 # --------------------------------------------------------------------------------
-from schunk_fts_library.driver import Driver
+from schunk_fts_library.driver import Driver, _normalize_output_rate
 from schunk_fts_library.utility import Connection
 import time
 import pytest
@@ -36,6 +36,64 @@ def test_driver_initializes_as_expected():
     driver = Driver(host=host, port=port)
     assert driver.connection.host == host
     assert driver.connection.port == port
+
+
+def test_driver_default_output_rate_preserves_legacy_behavior():
+    driver = Driver()
+    assert driver.output_rate == "1000"
+    assert driver.output_rate_mode.samples_per_packet == 1
+    assert driver.output_rate_parameter_value == "00"
+
+
+def test_driver_accepts_supported_output_rates():
+    for rate in ("1000", "500", "250", "100", "500-16", 1000):
+        driver = Driver(output_rate=rate)
+        assert driver.output_rate == str(rate)
+
+
+def test_driver_rejects_unsupported_output_rate():
+    with pytest.raises(ValueError):
+        Driver(output_rate="not-a-real-rate")
+
+
+def test_normalize_output_rate_rejects_unsupported_value():
+    with pytest.raises(ValueError):
+        _normalize_output_rate("8000")
+
+    with pytest.raises(ValueError):
+        _normalize_output_rate(12345)
+
+    # Sanity check: supported values normalize without error.
+    assert _normalize_output_rate(1000) == "1000"
+    assert _normalize_output_rate("500-16") == "500-16"
+
+
+def test_output_rate_survives_rosparam_yaml_parsing():
+    """Regression test for GH issue #1 ("output rate format").
+
+    rospy's CLI private-param parsing (rospy.client.load_command_line_node_params)
+    and roslaunch/rosparam's YAML-based value loading both run the raw string
+    through yaml.safe_load(). YAML 1.1's int grammar (and Python's int(), via
+    PEP 515) treats "_" as a digit-group separator, so the old "500_16" spelling
+    was silently collapsed into the integer 50016 before validation ever saw it,
+    making batch mode impossible to select from the documented CLI/launch syntax.
+    "-" isn't part of that numeric grammar, so "500-16" must survive unchanged
+    whether it comes back from yaml as a str or (impossible here, but checked
+    anyway) leaks through as some other type.
+    """
+    import yaml
+
+    parsed = yaml.safe_load("500-16")
+    assert parsed == "500-16"
+    assert isinstance(parsed, str)
+    assert _normalize_output_rate(parsed) == "500-16"
+
+    # The old, broken spelling: document why it's rejected rather than
+    # silently accepted as some other rate.
+    collapsed = yaml.safe_load("500_16")
+    assert collapsed == 50016
+    with pytest.raises(ValueError):
+        _normalize_output_rate(collapsed)
 
 
 def test_driver_offers_streaming(sensor):
