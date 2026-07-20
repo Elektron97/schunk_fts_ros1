@@ -322,3 +322,52 @@ def test_protocol_multiple_packets_in_sequence():
         assert pytest.approx(decoded["fx"]) == float(i)
         assert pytest.approx(decoded["fy"]) == float(i + 1)
         assert pytest.approx(decoded["fz"]) == float(i + 2)
+
+
+def test_protocol_decode_packet_449_byte_batch_layout():
+    """Test the 500_16 output-rate batch framing (16 samples, 28-byte stride).
+
+    sync(2) counter(u16) payload_len(u16)=449 packet_id(u8)
+      [ status_bits(u32) fx,fy,fz,tx,ty,tz(f32 x6) ] x 16   (28 bytes each)
+    """
+    counter = 99
+    packet_id = 5
+    packet = bytearray(b"\xFF\xFF") + struct.pack("<HH", counter, 449)
+    packet += struct.pack("<B", packet_id)
+    for i in range(16):
+        packet += struct.pack(
+            "<I ffffff",
+            i,  # status_bits
+            float(i),
+            float(i),
+            float(i),
+            float(i),
+            float(i),
+            float(i),
+        )
+
+    assert len(packet) == 6 + 449  # envelope header (6) + payload (449)
+
+    samples = FTDataBuffer.decode_packet(packet)
+    assert len(samples) == 16
+    for i, sample in enumerate(samples):
+        assert sample["counter"] == counter
+        assert sample["id"] == packet_id
+        assert sample["sample_index"] == i
+        assert sample["samples_per_packet"] == 16
+        assert sample["status_bits"] == i
+        assert pytest.approx(sample["fx"]) == float(i)
+
+
+def test_protocol_decode_packet_29_byte_single_sample_matches_decode():
+    """decode_packet's 29-byte branch must be byte-for-byte equivalent to decode()."""
+    packet = bytearray(b"\xFF\xFF") + struct.pack(
+        "<HHB I ffffff", 3, 29, 1, 0x2A, 1.5, -2.5, 3.5, -4.5, 5.5, -6.5
+    )
+
+    legacy = FTDataBuffer.decode(packet)
+    samples = FTDataBuffer.decode_packet(packet)
+
+    assert len(samples) == 1
+    assert samples[0] == legacy
+    assert "sample_index" not in samples[0]

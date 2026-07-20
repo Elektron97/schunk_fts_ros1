@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU General Public License along with
 # this program. If not, see <https://www.gnu.org/licenses/>.
 # --------------------------------------------------------------------------------
-from schunk_fts_library.driver import Driver
+from schunk_fts_library.driver import Driver, _normalize_output_rate
 from schunk_fts_library.utility import Connection
 import time
 import pytest
@@ -36,6 +36,36 @@ def test_driver_initializes_as_expected():
     driver = Driver(host=host, port=port)
     assert driver.connection.host == host
     assert driver.connection.port == port
+
+
+def test_driver_default_output_rate_preserves_legacy_behavior():
+    driver = Driver()
+    assert driver.output_rate == "1000"
+    assert driver.output_rate_mode.samples_per_packet == 1
+    assert driver.output_rate_parameter_value == "00"
+
+
+def test_driver_accepts_supported_output_rates():
+    for rate in ("1000", "500", "250", "100", "500_16", 1000):
+        driver = Driver(output_rate=rate)
+        assert driver.output_rate == str(rate)
+
+
+def test_driver_rejects_unsupported_output_rate():
+    with pytest.raises(ValueError):
+        Driver(output_rate="not-a-real-rate")
+
+
+def test_normalize_output_rate_rejects_unsupported_value():
+    with pytest.raises(ValueError):
+        _normalize_output_rate("8000")
+
+    with pytest.raises(ValueError):
+        _normalize_output_rate(12345)
+
+    # Sanity check: supported values normalize without error.
+    assert _normalize_output_rate(1000) == "1000"
+    assert _normalize_output_rate("500_16") == "500_16"
 
 
 def test_driver_offers_streaming(sensor):
