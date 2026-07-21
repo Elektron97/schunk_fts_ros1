@@ -1,8 +1,8 @@
 {
-  "timestamp": "2026-07-03T12:45:04Z",
+  "timestamp": "2026-07-21T08:20:03Z",
   "repository": "SCHUNK-SE-Co-KG/schunk_force_torque_sensor",
   "dependencies_scanned": 71,
-  "vulnerabilities_found": 0,
+  "vulnerabilities_found": 2,
   "high_severity_count": 0,
   "dependencies": [
     {
@@ -119,7 +119,7 @@
     },
     {
       "name": "pytest",
-      "version": "9.1.1",
+      "version": "9.0.2",
       "ecosystem": "PyPI",
       "source": "schunk_fts_driver/setup.py",
       "upstream_repo": ""
@@ -440,13 +440,6 @@
       "upstream_repo": ""
     },
     {
-      "name": "std_msgs",
-      "version": "",
-      "ecosystem": "ROS",
-      "source": "schunk_fts_interfaces/package.xml",
-      "upstream_repo": "ros2/common_interfaces"
-    },
-    {
       "name": "rclpy",
       "version": "",
       "ecosystem": "ROS",
@@ -501,7 +494,55 @@
       "ecosystem": "ROS",
       "source": "schunk_fts_driver/package.xml",
       "upstream_repo": "ros2/example_interfaces"
+    },
+    {
+      "name": "std_msgs",
+      "version": "",
+      "ecosystem": "ROS",
+      "source": "schunk_fts_interfaces/package.xml",
+      "upstream_repo": "ros2/common_interfaces"
     }
   ],
-  "vulnerabilities": []
+  "vulnerabilities": [
+    {
+      "vuln_id": "GHSA-6w46-j5rx-g56g",
+      "summary": "pytest has vulnerable tmpdir handling",
+      "severity": "CVSS:3.1/AV:L/AC:L/PR:N/UI:N/S:C/C:L/I:L/A:L",
+      "cvss_score": 6.8,
+      "affected_package": "PyPI:pytest@9.0.2",
+      "affected_versions": "2.0.0, 2.0.1, 2.0.2, 2.0.3, 2.1.0, 2.1.1, 2.1.2, 2.1.3, 2.2.0, 2.2.1 …",
+      "fixed_version": "9.0.3",
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2025-71176",
+        "https://github.com/pytest-dev/pytest/issues/13669",
+        "https://github.com/pytest-dev/pytest/pull/14343",
+        "https://github.com/pytest-dev/pytest/commit/95d8423bd24992deea5b9df32555fa1741679e2c",
+        "https://github.com/pytest-dev/pytes"
+      ],
+      "aliases": [
+        "CVE-2025-71176",
+        "PYSEC-2026-1845"
+      ]
+    },
+    {
+      "vuln_id": "PYSEC-2026-1845",
+      "summary": "pytest has vulnerable tmpdir handling",
+      "severity": "CVSS:3.1/AV:L/AC:L/PR:N/UI:N/S:C/C:L/I:L/A:L",
+      "cvss_score": 6.8,
+      "affected_package": "PyPI:pytest@9.0.2",
+      "affected_versions": "2.0.0, 2.0.1, 2.0.2, 2.0.3, 2.1.0, 2.1.1, 2.1.2, 2.1.3, 2.2.0, 2.2.1 …",
+      "fixed_version": "9.0.3",
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2025-71176",
+        "https://github.com/pytest-dev/pytest/issues/13669",
+        "https://github.com/pytest-dev/pytest/pull/14343",
+        "https://github.com/pytest-dev/pytest/commit/95d8423bd24992deea5b9df32555fa1741679e2c",
+        "https://github.com/pytest-dev/pytes"
+      ],
+      "aliases": [
+        "CVE-2025-71176",
+        "GHSA-6w46-j5rx-g56g"
+      ]
+    }
+  ]
 }

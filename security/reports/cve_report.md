@@ -1,20 +1,20 @@
 # CVE-Scan Report – schunk_force_torque_sensor
 
-**Scan-Zeitpunkt:** 2026-07-03T12:45:04Z
+**Scan-Zeitpunkt:** 2026-07-21T08:20:03Z
 **Repository:** SCHUNK-SE-Co-KG/schunk_force_torque_sensor
 **Abhängigkeiten geprüft:** 71
-**Schwachstellen gefunden:** 0
+**Schwachstellen gefunden:** 2
 
-> Keine bekannten Schwachstellen gefunden.
+> 2 Schwachstelle(n) gefunden!
 
 ## Zusammenfassung nach Ökosystem
 
 | Ökosystem | Abhängigkeiten | Schwachstellen |
 |-----------|---------------|----------------|
-| PyPI (Python) | 22 | 0 |
+| PyPI (Python) | 22 | 2 |
 | crates.io (Rust) | 40 | 0 |
 | ROS 2 | 9 | 0 |
-| **Gesamt** | **71** | **0** |
+| **Gesamt** | **71** | **2** |
 
 ## Geprüfte Abhängigkeiten
 
@@ -38,7 +38,7 @@
 | pathspec | 1.1.1 | schunk_fts_driver/setup.py |
 | platformdirs | 4.10.0 | schunk_fts_driver/setup.py |
 | pluggy | 1.6.0 | schunk_fts_driver/setup.py |
-| pytest | 9.1.1 | schunk_fts_driver/setup.py |
+| pytest | 9.0.2 | schunk_fts_driver/setup.py |
 | pytest-repeat | 0.9.4 | schunk_fts_driver/setup.py |
 | PyYAML | 6.0.3 | schunk_fts_driver/setup.py |
 | tomli | 2.4.1 | schunk_fts_driver/setup.py |
@@ -94,7 +94,6 @@
 
 | Paket | Ökosystem | Quelle | Upstream |
 |-------|-----------|--------|----------|
-| std_msgs | ROS | schunk_fts_interfaces/package.xml | [ros2/common_interfaces](https://github.com/ros2/common_interfaces) |
 | rclpy | ROS | schunk_fts_driver/package.xml | [ros2/rclpy](https://github.com/ros2/rclpy) |
 | launch | ROS | schunk_fts_driver/package.xml | [ros2/launch](https://github.com/ros2/launch) |
 | launch_ros | ROS | schunk_fts_driver/package.xml | [ros2/launch_ros](https://github.com/ros2/launch_ros) |
@@ -103,6 +102,39 @@
 | sensor_msgs | ROS | schunk_fts_driver/package.xml | [ros2/common_interfaces](https://github.com/ros2/common_interfaces) |
 | diagnostic_msgs | ROS | schunk_fts_driver/package.xml | [ros2/common_interfaces](https://github.com/ros2/common_interfaces) |
 | example_interfaces | ROS | schunk_fts_driver/package.xml | [ros2/example_interfaces](https://github.com/ros2/example_interfaces) |
+| std_msgs | ROS | schunk_fts_interfaces/package.xml | [ros2/common_interfaces](https://github.com/ros2/common_interfaces) |
+
+## Gefundene Schwachstellen
+
+### GHSA-6w46-j5rx-g56g
+
+- **Paket:** PyPI:pytest@9.0.2
+- **CVSS-Score:** 6.8
+- **Schweregrad:** CVSS:3.1/AV:L/AC:L/PR:N/UI:N/S:C/C:L/I:L/A:L
+- **CVE:** CVE-2025-71176
+- **Beschreibung:** pytest has vulnerable tmpdir handling
+- **Fix-Version:** 9.0.3
+- **Referenzen:**
+  - https://nvd.nist.gov/vuln/detail/CVE-2025-71176
+  - https://github.com/pytest-dev/pytest/issues/13669
+  - https://github.com/pytest-dev/pytest/pull/14343
+  - https://github.com/pytest-dev/pytest/commit/95d8423bd24992deea5b9df32555fa1741679e2c
+  - https://github.com/pytest-dev/pytes
+
+### PYSEC-2026-1845
+
+- **Paket:** PyPI:pytest@9.0.2
+- **CVSS-Score:** 6.8
+- **Schweregrad:** CVSS:3.1/AV:L/AC:L/PR:N/UI:N/S:C/C:L/I:L/A:L
+- **CVE:** CVE-2025-71176
+- **Beschreibung:** pytest has vulnerable tmpdir handling
+- **Fix-Version:** 9.0.3
+- **Referenzen:**
+  - https://nvd.nist.gov/vuln/detail/CVE-2025-71176
+  - https://github.com/pytest-dev/pytest/issues/13669
+  - https://github.com/pytest-dev/pytest/pull/14343
+  - https://github.com/pytest-dev/pytest/commit/95d8423bd24992deea5b9df32555fa1741679e2c
+  - https://github.com/pytest-dev/pytes
 
 ---
 *Automatisch generiert von `security/cve_scanner.py` via [OSV.dev](https://osv.dev) und GitHub Advisory Database.*
