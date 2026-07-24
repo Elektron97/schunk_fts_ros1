@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-07-23T08:23:01Z",
+  "timestamp": "2026-07-24T08:19:21Z",
   "repository": "SCHUNK-SE-Co-KG/schunk_force_torque_sensor",
   "dependencies_scanned": 71,
   "vulnerabilities_found": 2,
@@ -440,20 +440,6 @@
       "upstream_repo": ""
     },
     {
-      "name": "std_msgs",
-      "version": "",
-      "ecosystem": "ROS",
-      "source": "schunk_fts_interfaces/package.xml",
-      "upstream_repo": "ros2/common_interfaces"
-    },
-    {
-      "name": "geometry_msgs",
-      "version": "",
-      "ecosystem": "ROS",
-      "source": "schunk_fts_interfaces/package.xml",
-      "upstream_repo": "ros2/common_interfaces"
-    },
-    {
       "name": "rclpy",
       "version": "",
       "ecosystem": "ROS",
@@ -473,6 +459,13 @@
       "ecosystem": "ROS",
       "source": "schunk_fts_driver/package.xml",
       "upstream_repo": "ros2/launch_ros"
+    },
+    {
+      "name": "geometry_msgs",
+      "version": "",
+      "ecosystem": "ROS",
+      "source": "schunk_fts_driver/package.xml",
+      "upstream_repo": "ros2/common_interfaces"
     },
     {
       "name": "std_srvs",
@@ -501,6 +494,13 @@
       "ecosystem": "ROS",
       "source": "schunk_fts_driver/package.xml",
       "upstream_repo": "ros2/example_interfaces"
+    },
+    {
+      "name": "std_msgs",
+      "version": "",
+      "ecosystem": "ROS",
+      "source": "schunk_fts_interfaces/package.xml",
+      "upstream_repo": "ros2/common_interfaces"
     }
   ],
   "vulnerabilities": [
