@@ -1,0 +1,26 @@
+CVE-Alert: Kritische Schwachstellen in schunk_force_torque_sensor
+====================================================================
+
+Scan-Zeitpunkt: 2026-10-01T12:18:36Z
+Repository:     SCHUNK-SE-Co-KG/schunk_force_torque_sensor
+Schwachstellen: 5 gesamt, 2 mit CVSS >= 7.0
+
+--------------------------------------------------------------------
+
+  GHSA-8988-9cw3-xx77  (CVSS 7.6)
+  Paket:       PyPI:urllib3@2.7.0
+  CVE:         CVE-2026-97687
+  Fix-Version: 2.8.0
+  urllib3: HTTPS proxy TLS configuration may be ignored or overridden
+  -> https://github.com/urllib3/urllib3/security/advisories/GHSA-8988-9cw3-xx77
+
+  GHSA-vxq7-64xx-v4gw  (CVSS 8.9)
+  Paket:       PyPI:urllib3@2.7.0
+  CVE:         CVE-2026-97689
+  Fix-Version: 2.8.0
+  urllib3: HTTPResponse.stream()/read_chunked() buffers an unbounded chunk-size line into memory
+  -> https://github.com/urllib3/urllib3/security/advisories/GHSA-vxq7-64xx-v4gw
+
+--------------------------------------------------------------------
+Vollstaendiger Report: security/reports/cve_report.md
+https://github.com/SCHUNK-SE-Co-KG/schunk_force_torque_sensor/blob/main/security/reports/cve_report.md

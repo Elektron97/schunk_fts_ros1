@@ -1,9 +1,9 @@
 {
-  "timestamp": "2026-09-30T11:49:09Z",
+  "timestamp": "2026-10-01T12:18:36Z",
   "repository": "SCHUNK-SE-Co-KG/schunk_force_torque_sensor",
   "dependencies_scanned": 71,
-  "vulnerabilities_found": 2,
-  "high_severity_count": 0,
+  "vulnerabilities_found": 5,
+  "high_severity_count": 2,
   "dependencies": [
     {
       "name": "requests",
@@ -542,6 +542,63 @@
       "aliases": [
         "CVE-2025-71176",
         "GHSA-6w46-j5rx-g56g"
+      ]
+    },
+    {
+      "vuln_id": "GHSA-8988-9cw3-xx77",
+      "summary": "urllib3: HTTPS proxy TLS configuration may be ignored or overridden",
+      "severity": "CVSS:4.0/AV:N/AC:L/AT:P/PR:N/UI:P/VC:H/VI:H/VA:N/SC:N/SI:N/SA:N",
+      "cvss_score": 7.6,
+      "affected_package": "PyPI:urllib3@2.7.0",
+      "affected_versions": "1.26.0, 1.26.1, 1.26.10, 1.26.11, 1.26.12, 1.26.13, 1.26.14, 1.26.15, 1.26.16, 1.26.17 …",
+      "fixed_version": "2.8.0",
+      "references": [
+        "https://github.com/urllib3/urllib3/security/advisories/GHSA-8988-9cw3-xx77",
+        "https://nvd.nist.gov/vuln/detail/CVE-2026-97687",
+        "https://github.com/urllib3/urllib3/pull/5093",
+        "https://github.com/urllib3/urllib3/commit/07408cec79d1856d81bb42c74a904a24fdb9e465",
+        "https://github.com/urllib3/urllib3/commit/b6447295fff7b38fdffc67e0df9712d60cef3cc3"
+      ],
+      "aliases": [
+        "CVE-2026-97687"
+      ]
+    },
+    {
+      "vuln_id": "GHSA-gh4c-6fx4-qh6g",
+      "summary": "urllib3: Chunked Deflate streaming can enter an infinite loop",
+      "severity": "CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:N/VI:N/VA:L/SC:N/SI:N/SA:N",
+      "cvss_score": 6.9,
+      "affected_package": "PyPI:urllib3@2.7.0",
+      "affected_versions": "2.6.2, 2.6.3, 2.7.0",
+      "fixed_version": "2.8.0",
+      "references": [
+        "https://github.com/urllib3/urllib3/security/advisories/GHSA-gh4c-6fx4-qh6g",
+        "https://nvd.nist.gov/vuln/detail/CVE-2026-97688",
+        "https://github.com/urllib3/urllib3/commit/ea2ad7b21a80da3632f80016526a18864586077f",
+        "https://github.com/urllib3/urllib3",
+        "https://github.com/urllib3/urllib3/releases/tag/2.8.0"
+      ],
+      "aliases": [
+        "CVE-2026-97688"
+      ]
+    },
+    {
+      "vuln_id": "GHSA-vxq7-64xx-v4gw",
+      "summary": "urllib3: HTTPResponse.stream()/read_chunked() buffers an unbounded chunk-size line into memory",
+      "severity": "CVSS:4.0/AV:N/AC:L/AT:P/PR:N/UI:N/VC:N/VI:N/VA:H/SC:N/SI:N/SA:H",
+      "cvss_score": 8.9,
+      "affected_package": "PyPI:urllib3@2.7.0",
+      "affected_versions": "1.10.3, 1.10.4, 1.11, 1.12, 1.13, 1.13.1, 1.14, 1.15, 1.15.1, 1.16 …",
+      "fixed_version": "2.8.0",
+      "references": [
+        "https://github.com/urllib3/urllib3/security/advisories/GHSA-vxq7-64xx-v4gw",
+        "https://nvd.nist.gov/vuln/detail/CVE-2026-97689",
+        "https://github.com/urllib3/urllib3/commit/cd770b059b543be29298ea5c52afb0b1b090f5ed",
+        "https://github.com/urllib3/urllib3",
+        "https://github.com/urllib3/urllib3/releases/tag/2.8.0"
+      ],
+      "aliases": [
+        "CVE-2026-97689"
       ]
     }
   ]
