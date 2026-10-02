@@ -1,20 +1,20 @@
 # CVE-Scan Report – schunk_force_torque_sensor
 
-**Scan-Zeitpunkt:** 2026-10-01T12:18:36Z
+**Scan-Zeitpunkt:** 2026-10-02T11:46:41Z
 **Repository:** SCHUNK-SE-Co-KG/schunk_force_torque_sensor
 **Abhängigkeiten geprüft:** 71
-**Schwachstellen gefunden:** 5
+**Schwachstellen gefunden:** 8
 
-> 5 Schwachstelle(n) gefunden!
+> 8 Schwachstelle(n) gefunden!
 
 ## Zusammenfassung nach Ökosystem
 
 | Ökosystem | Abhängigkeiten | Schwachstellen |
 |-----------|---------------|----------------|
-| PyPI (Python) | 22 | 5 |
+| PyPI (Python) | 22 | 8 |
 | crates.io (Rust) | 40 | 0 |
 | ROS 2 | 9 | 0 |
-| **Gesamt** | **71** | **5** |
+| **Gesamt** | **71** | **8** |
 
 ## Geprüfte Abhängigkeiten
 
@@ -167,6 +167,51 @@
   - https://github.com/urllib3/urllib3/releases/tag/2.8.0
 
 ### GHSA-vxq7-64xx-v4gw
+
+- **Paket:** PyPI:urllib3@2.7.0
+- **CVSS-Score:** 8.9 (KRITISCH)
+- **Schweregrad:** CVSS:4.0/AV:N/AC:L/AT:P/PR:N/UI:N/VC:N/VI:N/VA:H/SC:N/SI:N/SA:H
+- **CVE:** CVE-2026-97689
+- **Beschreibung:** urllib3: HTTPResponse.stream()/read_chunked() buffers an unbounded chunk-size line into memory
+- **Fix-Version:** 2.8.0
+- **Referenzen:**
+  - https://github.com/urllib3/urllib3/security/advisories/GHSA-vxq7-64xx-v4gw
+  - https://nvd.nist.gov/vuln/detail/CVE-2026-97689
+  - https://github.com/urllib3/urllib3/commit/cd770b059b543be29298ea5c52afb0b1b090f5ed
+  - https://github.com/urllib3/urllib3
+  - https://github.com/urllib3/urllib3/releases/tag/2.8.0
+
+### PYSEC-2026-4175
+
+- **Paket:** PyPI:urllib3@2.7.0
+- **CVSS-Score:** 7.6 (KRITISCH)
+- **Schweregrad:** CVSS:4.0/AV:N/AC:L/AT:P/PR:N/UI:P/VC:H/VI:H/VA:N/SC:N/SI:N/SA:N
+- **CVE:** CVE-2026-97687
+- **Beschreibung:** urllib3: HTTPS proxy TLS configuration may be ignored or overridden
+- **Fix-Version:** 2.8.0
+- **Referenzen:**
+  - https://github.com/urllib3/urllib3/security/advisories/GHSA-8988-9cw3-xx77
+  - https://nvd.nist.gov/vuln/detail/CVE-2026-97687
+  - https://github.com/urllib3/urllib3/pull/5093
+  - https://github.com/urllib3/urllib3/commit/07408cec79d1856d81bb42c74a904a24fdb9e465
+  - https://github.com/urllib3/urllib3/commit/b6447295fff7b38fdffc67e0df9712d60cef3cc3
+
+### PYSEC-2026-4176
+
+- **Paket:** PyPI:urllib3@2.7.0
+- **CVSS-Score:** 6.9
+- **Schweregrad:** CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:N/VI:N/VA:L/SC:N/SI:N/SA:N
+- **CVE:** CVE-2026-97688
+- **Beschreibung:** urllib3: Chunked Deflate streaming can enter an infinite loop
+- **Fix-Version:** 2.8.0
+- **Referenzen:**
+  - https://github.com/urllib3/urllib3/security/advisories/GHSA-gh4c-6fx4-qh6g
+  - https://nvd.nist.gov/vuln/detail/CVE-2026-97688
+  - https://github.com/urllib3/urllib3/commit/ea2ad7b21a80da3632f80016526a18864586077f
+  - https://github.com/urllib3/urllib3
+  - https://github.com/urllib3/urllib3/releases/tag/2.8.0
+
+### PYSEC-2026-4177
 
 - **Paket:** PyPI:urllib3@2.7.0
 - **CVSS-Score:** 8.9 (KRITISCH)
