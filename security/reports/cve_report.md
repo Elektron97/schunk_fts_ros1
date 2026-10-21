@@ -1,20 +1,20 @@
 # CVE-Scan Report – schunk_force_torque_sensor
 
-**Scan-Zeitpunkt:** 2026-10-20T10:50:50Z
+**Scan-Zeitpunkt:** 2026-10-21T11:03:04Z
 **Repository:** SCHUNK-SE-Co-KG/schunk_force_torque_sensor
 **Abhängigkeiten geprüft:** 71
-**Schwachstellen gefunden:** 8
+**Schwachstellen gefunden:** 10
 
-> 8 Schwachstelle(n) gefunden!
+> 10 Schwachstelle(n) gefunden!
 
 ## Zusammenfassung nach Ökosystem
 
 | Ökosystem | Abhängigkeiten | Schwachstellen |
 |-----------|---------------|----------------|
-| PyPI (Python) | 22 | 8 |
+| PyPI (Python) | 22 | 10 |
 | crates.io (Rust) | 40 | 0 |
 | ROS 2 | 9 | 0 |
-| **Gesamt** | **71** | **8** |
+| **Gesamt** | **71** | **10** |
 
 ## Geprüfte Abhängigkeiten
 
@@ -105,6 +105,35 @@
 | std_msgs | ROS | schunk_fts_interfaces/package.xml | [ros2/common_interfaces](https://github.com/ros2/common_interfaces) |
 
 ## Gefundene Schwachstellen
+
+### GHSA-6q48-6c7w-9gw2
+
+- **Paket:** PyPI:certifi@2026.6.17
+- **CVSS-Score:** 9.1 (KRITISCH)
+- **Schweregrad:** CVSS:4.0/AV:N/AC:H/AT:P/PR:N/UI:N/VC:H/VI:H/VA:N/SC:N/SI:N/SA:N
+- **CVE:** –
+- **Beschreibung:** certifi bundles emSign root CAs with compromised intermediate CA keys
+- **Fix-Version:** 2026.10.19
+- **Referenzen:**
+  - https://github.com/certifi/python-certifi/security/advisories/GHSA-6q48-6c7w-9gw2
+  - https://discuss.python.org/t/information-for-python-users-regarding-emudhra-emsign-ca-certificate-security-incident/109576
+  - https://emudhra.we-have-a-problem.com
+  - https://github.com/certifi/python-certifi
+
+### PYSEC-2026-4320
+
+- **Paket:** PyPI:certifi@2026.6.17
+- **CVSS-Score:** 9.1 (KRITISCH)
+- **Schweregrad:** CVSS:4.0/AV:N/AC:H/AT:P/PR:N/UI:N/VC:H/VI:H/VA:N/SC:N/SI:N/SA:N
+- **CVE:** –
+- **Beschreibung:** certifi bundles emSign root CAs with compromised intermediate CA keys
+- **Fix-Version:** 2026.10.19
+- **Referenzen:**
+  - https://github.com/certifi/python-certifi/security/advisories/GHSA-6q48-6c7w-9gw2
+  - https://discuss.python.org/t/information-for-python-users-regarding-emudhra-emsign-ca-certificate-security-incident/109576
+  - https://emudhra.we-have-a-problem.com
+  - https://github.com/certifi/python-certifi
+  - https://pypi.org/project/certifi
 
 ### GHSA-6w46-j5rx-g56g
 

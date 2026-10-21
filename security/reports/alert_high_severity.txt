@@ -1,11 +1,25 @@
 CVE-Alert: Kritische Schwachstellen in schunk_force_torque_sensor
 ====================================================================
 
-Scan-Zeitpunkt: 2026-10-20T10:50:50Z
+Scan-Zeitpunkt: 2026-10-21T11:03:04Z
 Repository:     SCHUNK-SE-Co-KG/schunk_force_torque_sensor
-Schwachstellen: 8 gesamt, 4 mit CVSS >= 7.0
+Schwachstellen: 10 gesamt, 6 mit CVSS >= 7.0
 
 --------------------------------------------------------------------
+
+  GHSA-6q48-6c7w-9gw2  (CVSS 9.1)
+  Paket:       PyPI:certifi@2026.6.17
+  CVE:         –
+  Fix-Version: 2026.10.19
+  certifi bundles emSign root CAs with compromised intermediate CA keys
+  -> https://github.com/certifi/python-certifi/security/advisories/GHSA-6q48-6c7w-9gw2
+
+  PYSEC-2026-4320  (CVSS 9.1)
+  Paket:       PyPI:certifi@2026.6.17
+  CVE:         –
+  Fix-Version: 2026.10.19
+  certifi bundles emSign root CAs with compromised intermediate CA keys
+  -> https://github.com/certifi/python-certifi/security/advisories/GHSA-6q48-6c7w-9gw2
 
   GHSA-8988-9cw3-xx77  (CVSS 7.6)
   Paket:       PyPI:urllib3@2.7.0
