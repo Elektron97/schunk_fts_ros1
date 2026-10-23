@@ -1,20 +1,20 @@
 # CVE-Scan Report – schunk_force_torque_sensor
 
-**Scan-Zeitpunkt:** 2026-10-22T11:02:11Z
+**Scan-Zeitpunkt:** 2026-10-23T10:55:22Z
 **Repository:** SCHUNK-SE-Co-KG/schunk_force_torque_sensor
 **Abhängigkeiten geprüft:** 71
-**Schwachstellen gefunden:** 10
+**Schwachstellen gefunden:** 11
 
-> 10 Schwachstelle(n) gefunden!
+> 11 Schwachstelle(n) gefunden!
 
 ## Zusammenfassung nach Ökosystem
 
 | Ökosystem | Abhängigkeiten | Schwachstellen |
 |-----------|---------------|----------------|
-| PyPI (Python) | 22 | 10 |
+| PyPI (Python) | 22 | 11 |
 | crates.io (Rust) | 40 | 0 |
 | ROS 2 | 9 | 0 |
-| **Gesamt** | **71** | **10** |
+| **Gesamt** | **71** | **11** |
 
 ## Geprüfte Abhängigkeiten
 
@@ -22,6 +22,8 @@
 
 | Paket | Version | Quelle |
 |-------|---------|--------|
+| requests | 2.34.2 | schunk_fts_library/setup.py |
+| psutil | 7.2.2 | schunk_fts_library/setup.py |
 | black | 26.5.1 | schunk_fts_driver/setup.py |
 | certifi | 2026.6.17 | schunk_fts_driver/setup.py |
 | charset-normalizer | 3.4.7 | schunk_fts_driver/setup.py |
@@ -39,11 +41,9 @@
 | pytest | 9.0.2 | schunk_fts_driver/setup.py |
 | pytest-repeat | 0.9.4 | schunk_fts_driver/setup.py |
 | PyYAML | 6.0.3 | schunk_fts_driver/setup.py |
-| requests | 2.34.2 | schunk_fts_driver/setup.py |
 | tomli | 2.4.1 | schunk_fts_driver/setup.py |
 | typing_extensions | 4.15.0 | schunk_fts_driver/setup.py |
 | urllib3 | 2.7.0 | schunk_fts_driver/setup.py |
-| psutil | 7.2.2 | schunk_fts_library/setup.py |
 
 ### Rust (crates.io)
 
@@ -105,6 +105,21 @@
 | std_msgs | ROS | schunk_fts_interfaces/package.xml | [ros2/common_interfaces](https://github.com/ros2/common_interfaces) |
 
 ## Gefundene Schwachstellen
+
+### GHSA-cg8m-r9f2-5wm2
+
+- **Paket:** PyPI:black@26.5.1
+- **CVSS-Score:** 8.7 (KRITISCH)
+- **Schweregrad:** CVSS:4.0/AV:N/AC:L/AT:N/PR:L/UI:N/VC:H/VI:H/VA:H/SC:N/SI:N/SA:N
+- **CVE:** CVE-2026-114134
+- **Beschreibung:** Black: GitHub Action installs unvalidated required-version from pyproject.toml
+- **Fix-Version:** 26.10.1
+- **Referenzen:**
+  - https://github.com/psf/black/security/advisories/GHSA-cg8m-r9f2-5wm2
+  - https://github.com/psf/black/pull/5510
+  - https://github.com/psf/black/commit/ac1f71563aeccf73cf13ece00f231d9d6c66a514
+  - https://github.com/psf/black
+  - https://github.com/psf/black/releases/tag/26.10.1
 
 ### GHSA-6q48-6c7w-9gw2
 

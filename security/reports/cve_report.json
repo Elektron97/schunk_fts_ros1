@@ -1,10 +1,24 @@
 {
-  "timestamp": "2026-10-22T11:02:11Z",
+  "timestamp": "2026-10-23T10:55:22Z",
   "repository": "SCHUNK-SE-Co-KG/schunk_force_torque_sensor",
   "dependencies_scanned": 71,
-  "vulnerabilities_found": 10,
-  "high_severity_count": 6,
+  "vulnerabilities_found": 11,
+  "high_severity_count": 7,
   "dependencies": [
+    {
+      "name": "requests",
+      "version": "2.34.2",
+      "ecosystem": "PyPI",
+      "source": "schunk_fts_library/setup.py",
+      "upstream_repo": ""
+    },
+    {
+      "name": "psutil",
+      "version": "7.2.2",
+      "ecosystem": "PyPI",
+      "source": "schunk_fts_library/setup.py",
+      "upstream_repo": ""
+    },
     {
       "name": "black",
       "version": "26.5.1",
@@ -125,13 +139,6 @@
       "upstream_repo": ""
     },
     {
-      "name": "requests",
-      "version": "2.34.2",
-      "ecosystem": "PyPI",
-      "source": "schunk_fts_driver/setup.py",
-      "upstream_repo": ""
-    },
-    {
       "name": "tomli",
       "version": "2.4.1",
       "ecosystem": "PyPI",
@@ -150,13 +157,6 @@
       "version": "2.7.0",
       "ecosystem": "PyPI",
       "source": "schunk_fts_driver/setup.py",
-      "upstream_repo": ""
-    },
-    {
-      "name": "psutil",
-      "version": "7.2.2",
-      "ecosystem": "PyPI",
-      "source": "schunk_fts_library/setup.py",
       "upstream_repo": ""
     },
     {
@@ -504,6 +504,25 @@
     }
   ],
   "vulnerabilities": [
+    {
+      "vuln_id": "GHSA-cg8m-r9f2-5wm2",
+      "summary": "Black: GitHub Action installs unvalidated required-version from pyproject.toml",
+      "severity": "CVSS:4.0/AV:N/AC:L/AT:N/PR:L/UI:N/VC:H/VI:H/VA:H/SC:N/SI:N/SA:N",
+      "cvss_score": 8.7,
+      "affected_package": "PyPI:black@26.5.1",
+      "affected_versions": "18.3a0, 18.3a1, 18.3a2, 18.3a3, 18.3a4, 18.4a0, 18.4a1, 18.4a2, 18.4a3, 18.4a4 …",
+      "fixed_version": "26.10.1",
+      "references": [
+        "https://github.com/psf/black/security/advisories/GHSA-cg8m-r9f2-5wm2",
+        "https://github.com/psf/black/pull/5510",
+        "https://github.com/psf/black/commit/ac1f71563aeccf73cf13ece00f231d9d6c66a514",
+        "https://github.com/psf/black",
+        "https://github.com/psf/black/releases/tag/26.10.1"
+      ],
+      "aliases": [
+        "CVE-2026-114134"
+      ]
+    },
     {
       "vuln_id": "GHSA-6q48-6c7w-9gw2",
       "summary": "certifi bundles emSign root CAs with compromised intermediate CA keys",
