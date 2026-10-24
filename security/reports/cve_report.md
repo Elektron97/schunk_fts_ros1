@@ -1,20 +1,20 @@
 # CVE-Scan Report – schunk_force_torque_sensor
 
-**Scan-Zeitpunkt:** 2026-10-23T10:55:22Z
+**Scan-Zeitpunkt:** 2026-10-24T10:10:09Z
 **Repository:** SCHUNK-SE-Co-KG/schunk_force_torque_sensor
 **Abhängigkeiten geprüft:** 71
-**Schwachstellen gefunden:** 11
+**Schwachstellen gefunden:** 12
 
-> 11 Schwachstelle(n) gefunden!
+> 12 Schwachstelle(n) gefunden!
 
 ## Zusammenfassung nach Ökosystem
 
 | Ökosystem | Abhängigkeiten | Schwachstellen |
 |-----------|---------------|----------------|
 | PyPI (Python) | 22 | 11 |
-| crates.io (Rust) | 40 | 0 |
+| crates.io (Rust) | 40 | 1 |
 | ROS 2 | 9 | 0 |
-| **Gesamt** | **71** | **11** |
+| **Gesamt** | **71** | **12** |
 
 ## Geprüfte Abhängigkeiten
 
@@ -269,6 +269,21 @@
   - https://github.com/urllib3/urllib3/commit/cd770b059b543be29298ea5c52afb0b1b090f5ed
   - https://github.com/urllib3/urllib3
   - https://github.com/urllib3/urllib3/releases/tag/2.8.0
+
+### RUSTSEC-2026-0386
+
+- **Paket:** crates.io:tokio@1.45.0
+- **CVSS-Score:** –
+- **Schweregrad:** UNKNOWN
+- **CVE:** –
+- **Beschreibung:** `AsyncFd::new` and related constructors violate I/O safety
+- **Fix-Version:** 1.51.6
+- **Referenzen:**
+  - https://crates.io/crates/tokio
+  - https://rustsec.org/advisories/RUSTSEC-2026-0386.html
+  - https://github.com/tokio-rs/tokio/pull/8587
+  - https://github.com/tokio-rs/tokio/issues/8538
+  - https://github.com/tokio-rs/tokio/issues/8539
 
 ---
 *Automatisch generiert von `security/cve_scanner.py` via [OSV.dev](https://osv.dev) und GitHub Advisory Database.*

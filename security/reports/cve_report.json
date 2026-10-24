@@ -1,8 +1,8 @@
 {
-  "timestamp": "2026-10-23T10:55:22Z",
+  "timestamp": "2026-10-24T10:10:09Z",
   "repository": "SCHUNK-SE-Co-KG/schunk_force_torque_sensor",
   "dependencies_scanned": 71,
-  "vulnerabilities_found": 11,
+  "vulnerabilities_found": 12,
   "high_severity_count": 7,
   "dependencies": [
     {
@@ -719,6 +719,23 @@
         "CVE-2026-97689",
         "GHSA-vxq7-64xx-v4gw"
       ]
+    },
+    {
+      "vuln_id": "RUSTSEC-2026-0386",
+      "summary": "`AsyncFd::new` and related constructors violate I/O safety",
+      "severity": "UNKNOWN",
+      "cvss_score": 0.0,
+      "affected_package": "crates.io:tokio@1.45.0",
+      "affected_versions": "",
+      "fixed_version": "1.51.6",
+      "references": [
+        "https://crates.io/crates/tokio",
+        "https://rustsec.org/advisories/RUSTSEC-2026-0386.html",
+        "https://github.com/tokio-rs/tokio/pull/8587",
+        "https://github.com/tokio-rs/tokio/issues/8538",
+        "https://github.com/tokio-rs/tokio/issues/8539"
+      ],
+      "aliases": []
     }
   ]
 }
