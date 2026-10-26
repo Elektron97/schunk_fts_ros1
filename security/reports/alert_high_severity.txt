@@ -1,7 +1,7 @@
 CVE-Alert: Kritische Schwachstellen in schunk_force_torque_sensor
 ====================================================================
 
-Scan-Zeitpunkt: 2026-10-25T10:35:28Z
+Scan-Zeitpunkt: 2026-10-26T12:08:36Z
 Repository:     SCHUNK-SE-Co-KG/schunk_force_torque_sensor
 Schwachstellen: 12 gesamt, 7 mit CVSS >= 7.0
 
