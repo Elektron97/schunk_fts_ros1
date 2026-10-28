@@ -1,6 +1,6 @@
 # CVE-Scan Report – schunk_force_torque_sensor
 
-**Scan-Zeitpunkt:** 2026-10-27T11:30:16Z
+**Scan-Zeitpunkt:** 2026-10-28T11:59:53Z
 **Repository:** SCHUNK-SE-Co-KG/schunk_force_torque_sensor
 **Abhängigkeiten geprüft:** 71
 **Schwachstellen gefunden:** 12
