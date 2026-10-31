@@ -1,6 +1,6 @@
 # CVE-Scan Report – schunk_force_torque_sensor
 
-**Scan-Zeitpunkt:** 2026-10-30T12:01:22Z
+**Scan-Zeitpunkt:** 2026-10-31T11:36:25Z
 **Repository:** SCHUNK-SE-Co-KG/schunk_force_torque_sensor
 **Abhängigkeiten geprüft:** 71
 **Schwachstellen gefunden:** 12
@@ -142,7 +142,7 @@
 - **Schweregrad:** CVSS:4.0/AV:N/AC:H/AT:P/PR:N/UI:N/VC:H/VI:H/VA:N/SC:N/SI:N/SA:N
 - **CVE:** –
 - **Beschreibung:** certifi bundles emSign root CAs with compromised intermediate CA keys
-- **Fix-Version:** 2026.10.19
+- **Fix-Version:** 2026.10.18
 - **Referenzen:**
   - https://github.com/certifi/python-certifi/security/advisories/GHSA-6q48-6c7w-9gw2
   - https://discuss.python.org/t/information-for-python-users-regarding-emudhra-emsign-ca-certificate-security-incident/109576

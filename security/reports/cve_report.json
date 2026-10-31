@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-10-30T12:01:22Z",
+  "timestamp": "2026-10-31T11:36:25Z",
   "repository": "SCHUNK-SE-Co-KG/schunk_force_torque_sensor",
   "dependencies_scanned": 71,
   "vulnerabilities_found": 12,
@@ -548,7 +548,7 @@
       "cvss_score": 9.1,
       "affected_package": "PyPI:certifi@2026.6.17",
       "affected_versions": "2019.11.28, 2019.3.9, 2019.6.16, 2019.9.11, 2020.11.8, 2020.12.5, 2020.4.5, 2020.4.5.1, 2020.4.5.2, 2020.6.20 …",
-      "fixed_version": "2026.10.19",
+      "fixed_version": "2026.10.18",
       "references": [
         "https://github.com/certifi/python-certifi/security/advisories/GHSA-6q48-6c7w-9gw2",
         "https://discuss.python.org/t/information-for-python-users-regarding-emudhra-emsign-ca-certificate-security-incident/109576",
