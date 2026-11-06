@@ -1,10 +1,24 @@
 {
-  "timestamp": "2026-11-05T13:54:02Z",
+  "timestamp": "2026-11-06T13:39:25Z",
   "repository": "SCHUNK-SE-Co-KG/schunk_force_torque_sensor",
   "dependencies_scanned": 71,
   "vulnerabilities_found": 12,
   "high_severity_count": 7,
   "dependencies": [
+    {
+      "name": "requests",
+      "version": "2.34.2",
+      "ecosystem": "PyPI",
+      "source": "schunk_fts_library/setup.py",
+      "upstream_repo": ""
+    },
+    {
+      "name": "psutil",
+      "version": "7.2.2",
+      "ecosystem": "PyPI",
+      "source": "schunk_fts_library/setup.py",
+      "upstream_repo": ""
+    },
     {
       "name": "black",
       "version": "26.5.1",
@@ -125,13 +139,6 @@
       "upstream_repo": ""
     },
     {
-      "name": "requests",
-      "version": "2.34.2",
-      "ecosystem": "PyPI",
-      "source": "schunk_fts_driver/setup.py",
-      "upstream_repo": ""
-    },
-    {
       "name": "tomli",
       "version": "2.4.1",
       "ecosystem": "PyPI",
@@ -150,13 +157,6 @@
       "version": "2.7.0",
       "ecosystem": "PyPI",
       "source": "schunk_fts_driver/setup.py",
-      "upstream_repo": ""
-    },
-    {
-      "name": "psutil",
-      "version": "7.2.2",
-      "ecosystem": "PyPI",
-      "source": "schunk_fts_library/setup.py",
       "upstream_repo": ""
     },
     {
